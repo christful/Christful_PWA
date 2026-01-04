@@ -52,7 +52,15 @@ export default function ResetPassword() {
             height={300}
             className="animate-fade-in"
           />
-        </div>
+        </div>        <div className="justify-center items-center flex">
+                  <Image
+                    src="/logo.png"
+                    alt="Christful Logo"
+                    width={300}
+                    height={300}
+                    className="animate-fade-in "
+                  />
+                </div>
         <div>
           <form onSubmit={handleSubmit}>
             <div className="text-center mb-5">

@@ -44,13 +44,13 @@ export default function ResetPassword() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white font-sans">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-60">
-        <div>
+        <div className="justify-center items-center flex">
           <Image
             src="/logo.png"
             alt="Christful Logo"
             width={300}
             height={300}
-            className="animate-fade-in"
+            className="animate-fade-in "
           />
         </div>
         <div>
