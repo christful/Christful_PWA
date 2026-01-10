@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -13,21 +13,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-
 export const metadata: Metadata = {
   title: 'Christful',
-  description: 'A PWA for Christful',
+  description: 'A platform to share the gospel of Christ with others.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Christful',
   },
+  icons: {
+    apple: '/icon512_rounded.png',
+  },
   formatDetection: {
     telephone: false,
   },
-  themeColor: '#000000',
-  viewport: 'minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, user-scalable=no, viewport-fit=cover',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -43,7 +52,7 @@ export default function RootLayout({
         <Toaster
           position="top-right"
           richColors
-          // closeButton
+        // closeButton
         />
         {children}
       </body>
