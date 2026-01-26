@@ -53,7 +53,7 @@ function LoginContent() {
         if (data.token) {
           localStorage.setItem("auth_token", data.token);
         }
-        router.push("/");
+        router.push("/khiu");
       } else {
         toast.error(data.message || "Invalid credentials. Please try again.");
       }

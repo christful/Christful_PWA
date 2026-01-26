@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, LockIcon, Mail, UserRound } from "lucide-react";
 import Splash from "@/components/common/Splash";
 import Link from "next/link";
+import { useGoogleLogin } from "@react-oauth/google";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 import { toast } from "sonner";
 
 import { ENDPOINTS } from "@/lib/api-config";
 import { useRouter } from "next/navigation";
 
-export function SignUpLayout() {
+function SignUpContent() {
   const router = useRouter();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -71,6 +72,26 @@ export function SignUpLayout() {
       setIsLoading(false);
     }
   };
+
+  const continueWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        console.log("Google Token Response:", tokenResponse);
+        const res = await axios.post("https://christful-backend.vercel.app/google-auth", {
+          access_token: tokenResponse.access_token,
+        });
+        if (res.data?.token) localStorage.setItem("auth_token", res.data.token);
+        router.push("/profileSetup");
+      } catch (err) {
+        console.error("Google login failed:", err);
+        toast.error("Google login failed");
+      }
+    },
+    onError: (error) => {
+      console.error("Google login error:", error);
+      toast.error("Google login error");
+    },
+  });
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
@@ -196,9 +217,10 @@ export function SignUpLayout() {
               <Button
                 type="button"
                 className="w-full bg-white border hover:bg-gray-50 text-foreground flex items-center justify-center gap-2"
+                onClick={() => continueWithGoogle()}
                 disabled={isLoading}
               >
-                <FaGoogle className="h-4 w-4 text-red-500" />
+                <img src="/google_logo.png" alt="google logo" className="h-4 w-4" />
                 Continue with Google
               </Button>
             </div>
@@ -217,3 +239,12 @@ export function SignUpLayout() {
   );
 }
 
+export function SignUpLayout() {
+  const { GoogleOAuthProvider } = require("@react-oauth/google");
+
+  return (
+    <GoogleOAuthProvider clientId="363990971536-b57116i98g4m56bm4vri2uqnfqa4bp4j.apps.googleusercontent.com">
+      <SignUpLayout />
+    </GoogleOAuthProvider>
+  );
+}
