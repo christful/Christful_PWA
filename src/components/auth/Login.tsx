@@ -49,11 +49,17 @@ function LoginContent() {
 
       if (response.ok) {
         toast.success("Login successful!");
-        // Store token in localStorage or cookie
+        // Store token and user data in localStorage
         if (data.token) {
           localStorage.setItem("auth_token", data.token);
         }
-        router.push("/khiu");
+        if (data.user?.id) {
+          localStorage.setItem("userId", data.user.id);
+        }
+        if (data.user?.firstName) {
+          localStorage.setItem("userName", data.user.firstName);
+        }
+        router.push("/home");
       } else {
         toast.error(data.message || "Invalid credentials. Please try again.");
       }
@@ -72,8 +78,13 @@ function LoginContent() {
         const res = await axios.post("https://christful-backend.vercel.app/google-auth", {
           access_token: tokenResponse.access_token,
         });
-        if (res.data?.token) localStorage.setItem("auth_token", res.data.token);
-        router.push("/");
+        if (res.data?.token) {
+          localStorage.setItem("auth_token", res.data.token);
+        }
+        if (res.data?.user?.id) {
+          localStorage.setItem("userId", res.data.user.id);
+        }
+        router.push("/home");
       } catch (err) {
         console.error("Google login failed:", err);
         toast.error("Google login failed");

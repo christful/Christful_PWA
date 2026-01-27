@@ -111,10 +111,12 @@ export default function CommunitiesPage() {
           {/* Header Section */}
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Communities</h1>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Community
-            </Button>
+            <Link href="/communities/create">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Community
+              </Button>
+            </Link>
           </div>
 
           {/* Search Section */}

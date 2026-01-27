@@ -15,16 +15,36 @@ import Link from "next/link";
 import { ENDPOINTS } from "@/lib/api-config";
 
 export function Header() {
-  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string } | null>(null);
+  const [user, setUser] = useState<{ id?: string; firstName: string; lastName?: string; avatarUrl?: string } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
     if (token) {
       setIsLoggedIn(true);
       fetchUserData(token);
+      fetchNotificationCount(token);
     }
   }, []);
+
+  const fetchNotificationCount = async (token: string) => {
+    try {
+      const response = await fetch(ENDPOINTS.NOTIFICATIONS, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const notifs = Array.isArray(data) ? data : data.notifications || [];
+        const unreadCount = notifs.filter((n: any) => n.isRead === false).length;
+        setNotifCount(unreadCount);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notification count:", error);
+    }
+  };
 
   const fetchUserData = async (token: string) => {
     try {
@@ -36,6 +56,10 @@ export function Header() {
       if (response.ok) {
         const data = await response.json();
         setUser(data);
+        // Store user info for later use
+        if (data.id) localStorage.setItem("userId", data.id);
+        if (data.firstName) localStorage.setItem("userName", data.firstName);
+        if (data.avatarUrl) localStorage.setItem("userAvatar", data.avatarUrl);
       } else if (response.status === 401) {
         handleLogout();
       }
@@ -69,8 +93,15 @@ export function Header() {
 
       {/* Center (Desktop only) */}
       <div className="hidden md:flex items-center gap-20 mr-35">
-        <House className="h-6 w-6 text-muted-foreground cursor-pointer" />
-        <Users className="h-6 w-6 text-muted-foreground cursor-pointer" />
+        <Link href="/home">
+          <House className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+        </Link>
+        <Link href="/communities">
+          <Users className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+        </Link>
+        <Link href="/messages" title="Messages">
+          <svg className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+        </Link>
       </div>
 
       {/* Right */}
@@ -78,13 +109,15 @@ export function Header() {
         <Search className="h-6 w-6 text-muted-foreground md:hidden cursor-pointer" />
 
         <div className="flex items-center gap-4">
-          <Button className="hidden md:flex items-center  bg-[#800517]">
-            <Plus className="h-4 w-4 mr-2" />
-            Create
-          </Button>
+          <Link href="/create">
+            <Button className="hidden md:flex items-center bg-[#800517]">
+              <Plus className="h-4 w-4 mr-2" />
+              Create
+            </Button>
+          </Link>
 
           {/* Notification Bell with count */}
-          <NotificationBell count={isLoggedIn ? 3 : 0} />
+          <NotificationBell count={notifCount} />
         </div>
 
         <Popover>

@@ -14,4 +14,18 @@ const withPWA = withPWAInit({
 export default withPWA({
   // Your other Next.js config options here (e.g., images, etc.)
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
+        pathname: '/**',
+      },
+    ],
+  },
 });

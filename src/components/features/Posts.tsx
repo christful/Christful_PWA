@@ -9,19 +9,22 @@ import { toast } from "sonner";
 interface Post {
   id: string;
   content: string;
-  postType: 'image' | 'video' | 'audio' | 'text';
+  mediaType?: string;
   author: {
+    id: string;
     firstName: string;
     lastName: string;
-    avatarUrl: string;
+    avatarUrl?: string;
   };
   imageUrl?: string;
   videoUrl?: string;
   audioUrl?: string;
-  mediaType?: string;
+  likes?: any[];
+  comments?: any[];
+  createdAt?: string;
 }
 
-export function Posts() {
+export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   const [activeTab, setActiveTab] = useState("All");
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,14 +51,26 @@ export function Posts() {
       toast.error("Failed to load posts");
     } finally {
       setIsLoading(false);
+      // Notify parent that data has loaded
+      if (onDataLoaded) {
+        onDataLoaded();
+      }
     }
   };
 
+  const getPostType = (post: Post): 'image' | 'video' | 'audio' | 'text' => {
+    if (post.videoUrl) return 'video';
+    if (post.audioUrl) return 'audio';
+    if (post.imageUrl) return 'image';
+    return 'text';
+  };
+
   const filteredPosts = posts.filter((post) => {
+    const postType = getPostType(post);
     if (activeTab === "All") return true;
-    if (activeTab === "Video") return post.postType === "video";
-    if (activeTab === "Audio") return post.postType === "audio";
-    if (activeTab === "Text") return post.postType === "text";
+    if (activeTab === "Video") return postType === "video";
+    if (activeTab === "Audio") return postType === "audio";
+    if (activeTab === "Text") return postType === "text";
     return true;
   });
 
@@ -104,17 +119,30 @@ export function Posts() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
             ) : filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  postType={post.postType}
-                  authorName={`${post.author.firstName} ${post.author.lastName}`}
-                  authorAvatar={post.author.avatarUrl}
-                  date={new Date().toLocaleDateString()}
-                  textContent={post.content}
-                  mediaUrl={post.imageUrl || post.videoUrl || post.audioUrl}
-                />
-              ))
+              filteredPosts.map((post) => {
+                const postType = getPostType(post);
+                const userId = localStorage.getItem("userId");
+                const userHasLiked = post.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
+                
+                return (
+                  <PostCard
+                    key={post.id}
+                    postId={post.id}
+                    postType={postType}
+                    authorId={post.author.id}
+                    authorName={`${post.author.firstName} ${post.author.lastName}`}
+                    authorAvatar={post.author.avatarUrl || ''}
+                    date={post.createdAt ? new Date(post.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
+                    textContent={post.content}
+                    imageUrl={post.imageUrl}
+                    videoUrl={post.videoUrl}
+                    audioUrl={post.audioUrl}
+                    likesCount={post.likes?.length || 0}
+                    commentsCount={post.comments?.length || 0}
+                    isLiked={userHasLiked}
+                  />
+                );
+              })
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <p>No posts yet. Be the first to share!</p>

@@ -96,20 +96,22 @@ export default function GroupDetailPage() {
 
     try {
       const token = localStorage.getItem("auth_token");
-      const formData = new FormData();
-      formData.append("content", messageInput);
-
       const response = await fetch(ENDPOINTS.GROUP_MESSAGES(groupId), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: formData,
+        body: JSON.stringify({ content: messageInput }),
       });
 
       if (response.ok) {
         setMessageInput("");
-        fetchMessages();
+        await fetchMessages();
+        toast.success("Message sent!");
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || "Failed to send message");
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -151,7 +153,7 @@ export default function GroupDetailPage() {
               <div>
                 <h1 className="text-xl font-bold">{group.name}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {group.members.length} members
+                  {group.members?.length || 0} members
                 </p>
               </div>
             </div>
@@ -195,7 +197,12 @@ export default function GroupDetailPage() {
             )}
           </div>
 
-          {/* Message Input */}
+        </div>
+      </div>
+
+      {/* Message Input (Fixed at bottom) */}
+      <div className="fixed bottom-20 md:static left-0 right-0 bg-white border-t p-4 md:border-0 md:p-0 md:mt-6">
+        <div className="max-w-4xl mx-auto px-4">
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               placeholder="Type a message..."
@@ -203,7 +210,7 @@ export default function GroupDetailPage() {
               onChange={(e) => setMessageInput(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit" size="icon">
+            <Button type="submit" size="icon" className="flex-shrink-0">
               <Send className="h-4 w-4" />
             </Button>
           </form>

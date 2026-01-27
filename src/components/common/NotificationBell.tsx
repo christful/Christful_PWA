@@ -10,45 +10,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-const NOTIFICATIONS = [
-  {
-    id: 1,
-    title: "New Sermon uploaded",
-    description: "Pastor Johnson just uploaded 'Faith over Fear'",
-    time: "2 hours ago",
-    avatar: "/p.png",
-    unread: true,
-  },
-  {
-    id: 2,
-    title: "Community Update",
-    description: "Welcome 5 new members to the Christful family!",
-    time: "5 hours ago",
-    avatar: "/avatar.png",
-    unread: true,
-  },
-  {
-    id: 3,
-    title: "Live Stream",
-    description: "Morning prayer starts in 10 minutes",
-    time: "1 day ago",
-    avatar: "/d.png",
-    unread: false,
-  },
-  {
-    id: 4,
-    title: "New Comment",
-    description: "Someone commented on your post 'Let God be seen!'",
-    time: "2 days ago",
-    avatar: "/dextrus.png",
-    unread: false,
-  }
-];
+import { ENDPOINTS } from "@/lib/api-config";
 
 export function NotificationBell({ count = 3 }: { count?: number }) {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -56,6 +24,33 @@ export function NotificationBell({ count = 3 }: { count?: number }) {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
+
+      const response = await fetch(ENDPOINTS.NOTIFICATIONS, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(Array.isArray(data) ? data : data.notifications || []);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleClick = (e: React.MouseEvent) => {
     if (isMobile) {
@@ -92,24 +87,28 @@ export function NotificationBell({ count = 3 }: { count?: number }) {
         </div>
 
         <div className="max-h-[min(80vh,480px)] overflow-y-auto custom-scrollbar">
-          {NOTIFICATIONS.length > 0 ? (
+          {isLoading ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            </div>
+          ) : notifications.length > 0 ? (
             <div className="flex flex-col">
-              {NOTIFICATIONS.map((notif) => (
+              {notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors relative ${notif.unread ? "bg-primary/5" : ""}`}
+                  className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors relative ${notif.isRead === false ? "bg-primary/5" : ""}`}
                 >
                   <Avatar className="h-12 w-12 flex-shrink-0">
-                    <AvatarImage src={notif.avatar} />
-                    <AvatarFallback>{notif.title[0]}</AvatarFallback>
+                    <AvatarImage src={notif.senderAvatar || notif.avatar} />
+                    <AvatarFallback>{(notif.title || notif.type || "N")[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm leading-tight mb-1 ${notif.unread ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                      {notif.description}
+                    <p className={`text-sm leading-tight mb-1 ${notif.isRead === false ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                      {notif.message || notif.description || notif.title}
                     </p>
-                    <span className="text-xs text-muted-foreground">{notif.time}</span>
+                    <span className="text-xs text-muted-foreground">{notif.createdAt ? new Date(notif.createdAt).toLocaleDateString() : notif.time}</span>
                   </div>
-                  {notif.unread && (
+                  {notif.isRead === false && (
                     <div className="w-2 h-2 bg-primary rounded-full absolute right-4 top-1/2 -translate-y-1/2" />
                   )}
                   <button className="opacity-0 group-hover:opacity-100 p-1 hover:bg-secondary rounded-full transition-all">

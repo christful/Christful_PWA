@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useGoogleLogin } from "@react-oauth/google";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 import { toast } from "sonner";
+import axios from "axios";
 
 import { ENDPOINTS } from "@/lib/api-config";
 import { useRouter } from "next/navigation";
@@ -80,8 +81,13 @@ function SignUpContent() {
         const res = await axios.post("https://christful-backend.vercel.app/google-auth", {
           access_token: tokenResponse.access_token,
         });
-        if (res.data?.token) localStorage.setItem("auth_token", res.data.token);
-        router.push("/profileSetup");
+        if (res.data?.token) {
+          localStorage.setItem("auth_token", res.data.token);
+        }
+        if (res.data?.user?.id) {
+          localStorage.setItem("userId", res.data.user.id);
+        }
+        router.push("/auth/pofileSetup");
       } catch (err) {
         console.error("Google login failed:", err);
         toast.error("Google login failed");

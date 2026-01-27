@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,17 @@ export default function CreatePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | "audio" | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (!token) {
+      toast.error("Please login to create a post");
+      router.push("/auth/login");
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [router]);
 
   const handleFileSelect = (file: File, type: "image" | "video" | "audio") => {
     setSelectedFile(file);
@@ -33,6 +45,12 @@ export default function CreatePage() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("auth_token");
+      if (!token) {
+        toast.error("Authentication required");
+        router.push("/auth/login");
+        return;
+      }
+
       const formData = new FormData();
       formData.append("content", content);
 
@@ -48,19 +66,44 @@ export default function CreatePage() {
         body: formData,
       });
 
+      console.log("Post response status:", response.status);
+      
+      const responseText = await response.text();
+      console.log("Post response body:", responseText);
+      
+      let responseData = {};
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.log("Could not parse response as JSON");
+      }
+
       if (response.ok) {
         toast.success("Post created successfully!");
+        setContent("");
+        setSelectedFile(null);
+        setMediaType(null);
         router.push("/home");
+      } else if (response.status === 401) {
+        toast.error("Session expired. Please login again.");
+        localStorage.removeItem("auth_token");
+        router.push("/auth/login");
       } else {
-        toast.error("Failed to create post");
+        console.error("Post creation error:", response.status, responseData);
+        const errorMsg = (responseData as any)?.message || (responseData as any)?.error || "Failed to create post";
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error("Error creating post:", error);
-      toast.error("Error creating post");
+      toast.error(error instanceof Error ? error.message : "Error creating post");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#FBFDFF] pb-20 md:pb-0">

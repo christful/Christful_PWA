@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
-import { ChevronLeft, Users, Settings } from "lucide-react";
+import { ChevronLeft, Users, Settings, Plus } from "lucide-react";
 import Link from "next/link";
 
 interface Community {
@@ -35,11 +35,24 @@ export default function CommunityDetailPage() {
   const [community, setCommunity] = useState<Community | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (communityId) {
       fetchCommunityDetail();
     }
+  }, [communityId, refreshKey]);
+
+  useEffect(() => {
+    // Refresh groups every 3 seconds when on this page
+    const interval = setInterval(() => {
+      if (communityId) {
+        fetchCommunityDetail();
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [communityId]);
 
   const fetchCommunityDetail = async () => {
@@ -54,7 +67,9 @@ export default function CommunityDetailPage() {
       if (response.ok) {
         const data = await response.json();
         setCommunity(data);
+        const currentUserId = localStorage.getItem("userId");
         setIsMember(data.memberships?.length > 0);
+        setIsCreator(data.creator?.id === currentUserId);
       } else {
         toast.error("Community not found");
         router.push("/communities");
@@ -155,7 +170,14 @@ export default function CommunityDetailPage() {
                   </div>
                 </div>
 
-                {isMember ? (
+                {isCreator ? (
+                  <div className="flex gap-2">
+                    <Button variant="secondary">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Button>
+                  </div>
+                ) : isMember ? (
                   <div className="flex gap-2">
                     <Button variant="secondary">
                       <Settings className="h-4 w-4 mr-2" />
@@ -177,7 +199,17 @@ export default function CommunityDetailPage() {
 
           {/* Groups Section */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">Groups</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Groups in this Community</h2>
+              {isMember && (
+                <Link href={`/groups/create?communityId=${communityId}`}>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create Group
+                  </Button>
+                </Link>
+              )}
+            </div>
             {community.groups && community.groups.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {community.groups.map((group) => (
@@ -200,7 +232,12 @@ export default function CommunityDetailPage() {
               </div>
             ) : (
               <Card className="text-center py-8">
-                <p className="text-muted-foreground">No groups yet</p>
+                <p className="text-muted-foreground mb-4">No groups yet</p>
+                {isMember && (
+                  <Link href={`/groups/create?communityId=${communityId}`}>
+                    <Button size="sm">Create First Group</Button>
+                  </Link>
+                )}
               </Card>
             )}
           </div>

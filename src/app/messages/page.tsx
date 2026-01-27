@@ -30,7 +30,7 @@ export default function MessagesPage() {
   const fetchGroupChats = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.NOTIFICATIONS, {
+      const response = await fetch(ENDPOINTS.GROUPS, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -38,8 +38,8 @@ export default function MessagesPage() {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter for group messages
-        setGroupChats(data.groupChats || []);
+        // Filter for group chats
+        setGroupChats(data.groups || []);
       }
     } catch (error) {
       console.error("Error fetching chats:", error);

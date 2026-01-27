@@ -4,44 +4,48 @@ import { ChevronLeft, Bell, Settings, MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/common/Header";
+import { useEffect, useState } from "react";
+import { ENDPOINTS } from "@/lib/api-config";
+import { toast } from "sonner";
 
-const NOTIFICATIONS = [
-    {
-        id: 1,
-        title: "New Sermon uploaded",
-        description: "Pastor Johnson just uploaded 'Faith over Fear'",
-        time: "2 hours ago",
-        avatar: "/p.png",
-        unread: true,
-    },
-    {
-        id: 2,
-        title: "Community Update",
-        description: "Welcome 5 new members to the Christful family!",
-        time: "5 hours ago",
-        avatar: "/avatar.png",
-        unread: true,
-    },
-    {
-        id: 3,
-        title: "Live Stream",
-        description: "Morning prayer starts in 10 minutes",
-        time: "1 day ago",
-        avatar: "/d.png",
-        unread: false,
-    },
-    {
-        id: 4,
-        title: "New Comment",
-        description: "Someone commented on your post 'Let God be seen!'",
-        time: "2 days ago",
-        avatar: "/dextrus.png",
-        unread: false,
-    }
-];
+interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  avatar?: string;
+  unread: boolean;
+}
 
 export default function NotificationsPage() {
-    const router = useRouter();
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.NOTIFICATIONS, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      toast.error("Failed to load notifications");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
     return (
         <div className="min-h-screen bg-white">
@@ -71,8 +75,12 @@ export default function NotificationsPage() {
                     </div>
 
                     <div className="flex flex-col">
-                        {NOTIFICATIONS.length > 0 ? (
-                            NOTIFICATIONS.map((notif) => (
+                        {isLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                            </div>
+                        ) : notifications.length > 0 ? (
+                            notifications.map((notif) => (
                                 <div
                                     key={notif.id}
                                     className={`flex gap-4 px-4 py-4 cursor-pointer hover:bg-secondary/50 transition-colors relative border-b last:border-0 ${notif.unread ? "bg-primary/5" : ""}`}

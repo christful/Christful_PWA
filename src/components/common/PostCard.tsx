@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardAction,
@@ -11,39 +11,62 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Share, Ellipsis, Play, Pause, Volume2, MessageSquareText, Heart, Repeat2, Eye } from "lucide-react"
+import { Share, Ellipsis, Play, Pause, Volume2, MessageSquareText, Heart, Repeat2, Eye, X } from "lucide-react"
 import Link from "next/link";
+import { ENDPOINTS } from "@/lib/api-config";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 export interface PostCardProps {
+  postId: string;
   postType: 'image' | 'video' | 'audio' | 'text';
+  authorId: string;
   authorName: string;
   authorAvatar: string;
   date: string;
   textContent?: string;
-  mediaUrl?: string;
-  mediaAlt?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  likesCount?: number;
+  commentsCount?: number;
+  isLiked?: boolean;
 }
 
 export function PostCard({
+  postId,
   postType,
+  authorId,
   authorName,
   authorAvatar,
   date,
   textContent,
-  mediaUrl,
-  mediaAlt
+  imageUrl,
+  videoUrl,
+  audioUrl,
+  likesCount = 0,
+  commentsCount = 0,
+  isLiked = false,
 }: PostCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
+  const [liked, setLiked] = useState(isLiked);
+  const [currentLikesCount, setCurrentLikesCount] = useState(likesCount);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
 
   const renderMedia = () => {
     switch (postType) {
       case 'image':
-        return mediaUrl && (
+        return imageUrl && (
           <div className="relative w-full h-64 md:h-80 overflow-hidden rounded-lg">
             <Image
-              src={mediaUrl}
-              alt={mediaAlt || "Post image"}
+              src={imageUrl}
+              alt="Post image"
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -52,10 +75,10 @@ export function PostCard({
         );
 
       case 'video':
-        return mediaUrl && (
+        return videoUrl && (
           <div className="relative w-full h-64 md:h-80 overflow-hidden rounded-lg">
             <video
-              src={mediaUrl}
+              src={videoUrl}
               className="w-full h-full object-cover"
               controls
             />
@@ -63,7 +86,7 @@ export function PostCard({
         );
 
       case 'audio':
-        return (
+        return audioUrl && (
           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
@@ -91,7 +114,130 @@ export function PostCard({
     }
   };
 
-  const hasMedia = postType !== 'text' && mediaUrl;
+  const handleLike = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("auth_token");
+      
+      const response = await fetch(ENDPOINTS.LIKE_POST(postId), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        setLiked(!liked);
+        setCurrentLikesCount(liked ? currentLikesCount - 1 : currentLikesCount + 1);
+        toast.success(liked ? "Post unliked" : "Post liked");
+      }
+    } catch (error) {
+      console.error("Error liking post:", error);
+      toast.error("Failed to like post");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFollow = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("auth_token");
+      
+      const response = await fetch(ENDPOINTS.FOLLOW(authorId), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        setIsFollowing(!isFollowing);
+        toast.success(isFollowing ? "Unfollowed" : "Followed");
+      } else {
+        toast.error("Failed to follow user");
+      }
+    } catch (error) {
+      console.error("Error following user:", error);
+      toast.error("Failed to follow user");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoadComments = async () => {
+    if (showComments) {
+      setShowComments(false);
+      return;
+    }
+
+    try {
+      setLoadingComments(true);
+      const token = localStorage.getItem("auth_token");
+      
+      const response = await fetch(ENDPOINTS.COMMENTS(postId), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setComments(Array.isArray(data) ? data : data.comments || []);
+        setShowComments(true);
+      } else {
+        toast.error("Failed to load comments");
+      }
+    } catch (error) {
+      console.error("Error loading comments:", error);
+      toast.error("Failed to load comments");
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!commentText.trim()) {
+      toast.error("Comment cannot be empty");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("auth_token");
+      
+      const response = await fetch(ENDPOINTS.COMMENTS(postId), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: commentText,
+        }),
+      });
+
+      if (response.ok) {
+        const newComment = await response.json();
+        setComments([...comments, newComment]);
+        setCommentText("");
+        toast.success("Comment added");
+      } else {
+        toast.error("Failed to add comment");
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast.error("Failed to add comment");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isOwnPost = localStorage.getItem("userId") === authorId;
+
+  const hasMedia = postType !== 'text' && (imageUrl || videoUrl || audioUrl);
 
   return (
     <Card className="overflow-hidden shadow-none">
@@ -107,11 +253,15 @@ export function PostCard({
           <div>
             <CardTitle className="text-base font-semibold">
               {authorName}
-              <Link href="">
-                <span className="text-xs text-medium text-[#556B2F] ml-2">
-                  · Follow
-                </span>
-              </Link>
+              {!isOwnPost && (
+                <button
+                  onClick={handleFollow}
+                  disabled={isLoading}
+                  className="text-xs text-medium text-[#556B2F] ml-2 hover:underline disabled:opacity-50"
+                >
+                  · {isFollowing ? "Unfollow" : "Follow"}
+                </button>
+              )}
             </CardTitle>
             <CardDescription className="text-sm">{date}</CardDescription>
           </div>
@@ -136,23 +286,80 @@ export function PostCard({
       </CardContent>
 
       <CardFooter className="border-t py-4">
-        <div className="flex items-center justify-between w-full text-sm text-gray-600 sm:justify-start sm:gap-12">
-          <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
-            <MessageSquareText size={18} />
-            <span className="font-medium">2K</span>
-          </button>
-          <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
-            <Heart size={18} />
-            <span className="font-medium">1K</span>
-          </button>
-          <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
-            <Repeat2 size={18} />
-            <span className="font-medium">100</span>
-          </button>
-          <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
-            <Eye size={18} />
-            <span className="font-medium">100M</span>
-          </button>
+        <div className="flex flex-col w-full gap-4">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between w-full text-sm text-gray-600 sm:justify-start sm:gap-12">
+            <button
+              onClick={handleLoadComments}
+              disabled={loadingComments}
+              className="flex items-center gap-1.5 hover:text-primary transition-colors disabled:opacity-50"
+            >
+              <MessageSquareText size={18} />
+              <span className="font-medium">{commentsCount}</span>
+            </button>
+            <button
+              onClick={handleLike}
+              disabled={isLoading}
+              className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 ${
+                liked ? "text-red-500" : "hover:text-primary"
+              }`}
+            >
+              <Heart size={18} fill={liked ? "currentColor" : "none"} />
+              <span className="font-medium">{currentLikesCount}</span>
+            </button>
+            <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+              <Repeat2 size={18} />
+              <span className="font-medium">0</span>
+            </button>
+            <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+              <Eye size={18} />
+              <span className="font-medium">0</span>
+            </button>
+          </div>
+
+          {/* Comments Section */}
+          {showComments && (
+            <div className="border-t pt-4 space-y-4">
+              {/* Comment Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={isLoading || !commentText.trim()}
+                  className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                  {isLoading ? "..." : "Post"}
+                </button>
+              </div>
+
+              {/* Comments List */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {comments.length > 0 ? (
+                  comments.map((comment, idx) => (
+                    <div key={comment.id || idx} className="flex gap-2 p-2 bg-gray-50 rounded">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={comment.authorAvatar} />
+                        <AvatarFallback>{comment.authorName?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{comment.authorName}</div>
+                        <div className="text-sm text-gray-700">{comment.content || comment.text}</div>
+                        <div className="text-xs text-gray-500 mt-1">{comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : ""}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 text-sm py-4">No comments yet</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </CardFooter>
     </Card>
