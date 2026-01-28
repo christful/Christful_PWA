@@ -52,7 +52,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchUserProfile();
-  }, []);
+  }, [router]); // Add router dependency
 
   useEffect(() => {
     if (user && isEditMode) {

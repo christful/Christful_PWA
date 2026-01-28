@@ -33,25 +33,38 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
     fetchPosts();
   }, []);
 
+  // Update fetchPosts with error handling
+
   const fetchPosts = async () => {
     try {
       const token = localStorage.getItem("auth_token");
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
       const response = await fetch(`${ENDPOINTS.POSTS}?limit=20`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setPosts(data.posts || []);
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem("auth_token");
+          window.location.href = "/auth/login";
+          return;
+        }
+        throw new Error(`API error: ${response.status}`);
       }
+
+      const data = await response.json();
+      setPosts((data?.posts as any[]) || []);
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast.error("Failed to load posts");
     } finally {
       setIsLoading(false);
-      // Notify parent that data has loaded
       if (onDataLoaded) {
         onDataLoaded();
       }
