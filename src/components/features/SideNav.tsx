@@ -20,7 +20,7 @@ export function SideNav() {
 
   useEffect(() => {
     fetchFollowing();
-  }, []);
+  }, []); // Add empty dependency array
 
   const fetchFollowing = async () => {
     try {
