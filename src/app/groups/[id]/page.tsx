@@ -96,26 +96,52 @@ export default function GroupDetailPage() {
 
     try {
       const token = localStorage.getItem("auth_token");
-      const formData = new FormData();
-      formData.append("content", messageInput);
 
       const response = await fetch(ENDPOINTS.GROUP_MESSAGES(groupId), {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: formData,
+        body: JSON.stringify({ content: messageInput }),
       });
 
       if (response.ok) {
         setMessageInput("");
         fetchMessages();
+      } else {
+        toast.error("Failed to send message");
       }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
     }
   };
+
+  // Fetch current user ID to determine message alignment
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Attempt to get user ID from local storage or decode token if possible
+    // For now, we'll fetch 'ME'
+    const fetchMe = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        if (token) {
+          const response = await fetch(ENDPOINTS.ME, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setCurrentUserId(data.user?.id);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch me", e);
+      }
+    };
+    fetchMe();
+  }, []);
 
   if (isLoading) {
     return (
@@ -134,83 +160,110 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFDFF] pb-20 md:pb-0 flex flex-col">
-      <Header />
-
-      <div className="flex-1 flex flex-col pt-20">
-        <div className="max-w-4xl mx-auto w-full h-full px-4 flex flex-col">
-          {/* Group Header */}
-          <div className="flex items-center justify-between mb-4 pb-4 border-b">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="p-2 hover:bg-secondary rounded-full"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-              <div>
-                <h1 className="text-xl font-bold">{group.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {group.members.length} members
-                </p>
-              </div>
-            </div>
-            <button className="p-2 hover:bg-secondary rounded-full">
-              <MoreHorizontal className="h-6 w-6" />
+    <div className="min-h-screen bg-[#E5DDD5] flex flex-col relative">
+      {/* Fixed Header */}
+      <div className="bg-[#075E54] text-white fixed top-0 w-full z-10 shadow-md">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="p-1 hover:bg-white/10 rounded-full transition-colors"
+            >
+              <ChevronLeft className="h-6 w-6" />
             </button>
+            <Avatar className="h-10 w-10 border-2 border-white/20">
+              <AvatarFallback className="bg-primary-foreground text-primary font-bold">
+                {group.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="font-bold text-lg leading-tight">{group.name}</h1>
+              <p className="text-xs text-white/80">
+                {group.members.length} members
+              </p>
+            </div>
           </div>
+          <button className="p-2 hover:bg-white/10 rounded-full">
+            <MoreHorizontal className="h-6 w-6" />
+          </button>
+        </div>
+      </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-            {messages.length > 0 ? (
-              messages.map((message) => (
-                <div key={message.id} className="flex gap-3">
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarImage src={message.sender.avatarUrl} />
-                    <AvatarFallback>
-                      {message.sender.firstName.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm">
+      {/* Messages Area */}
+      <div className="flex-1 pt-24 pb-24 overflow-y-auto px-4 md:px-0">
+        <div className="max-w-4xl mx-auto flex flex-col gap-2">
+          {messages.length > 0 ? (
+            messages.map((message) => {
+              const isMe = message.sender.id === currentUserId; // Assuming sender has an ID field
+              return (
+                <div
+                  key={message.id}
+                  className={`flex gap-2 max-w-[85%] md:max-w-[70%] ${isMe ? 'self-end flex-row-reverse' : 'self-start'}`}
+                >
+                  {!isMe && (
+                    <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
+                      <AvatarImage src={message.sender.avatarUrl} />
+                      <AvatarFallback>{message.sender.firstName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  )}
+
+                  <div
+                    className={`rounded-2xl px-4 py-2 shadow-sm relative ${isMe
+                        ? 'bg-[#DCF8C6] rounded-tr-none text-gray-800'
+                        : 'bg-white rounded-tl-none text-gray-800'
+                      }`}
+                  >
+                    {!isMe && (
+                      <p className={`text-xs font-bold mb-1 ${isMe ? 'text-green-700' : 'text-blue-600'}`}>
                         {message.sender.firstName} {message.sender.lastName}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(message.createdAt).toLocaleTimeString()}
-                      </p>
-                    </div>
-                    <p className="text-sm text-foreground mt-1">
+                    )}
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
                       {message.content}
+                    </p>
+                    <p className="text-[10px] text-gray-500 text-right mt-1 ml-4 block selection:bg-none">
+                      {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground">
-                  No messages yet. Start the conversation!
-                </p>
+              );
+            })
+          ) : (
+            <div className="flex flex-col items-center justify-center p-8 mt-10">
+              <div className="bg-[#DCF8C6] p-4 rounded-full mb-4 shadow-sm opacity-80">
+                <Send className="h-8 w-8 text-[#075E54]" />
               </div>
-            )}
-          </div>
+              <p className="text-gray-500 text-center bg-white/80 px-4 py-2 rounded-lg shadow-sm">
+                No messages yet.<br />Be the first to say hello!
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Message Input */}
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <Input
-              placeholder="Type a message..."
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" size="icon">
-              <Send className="h-4 w-4" />
+      {/* Input Area */}
+      <div className="fixed bottom-0 w-full bg-[#F0F0F0] border-t border-gray-200 z-10 px-4 py-3 pb-safe-area">
+        <div className="max-w-4xl mx-auto">
+          <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+            <div className="flex-1 bg-white rounded-full flex items-center px-4 py-2 shadow-sm border border-gray-100 focus-within:ring-1 focus-within:ring-green-500 transition-all">
+              <Input
+                placeholder="Type a message..."
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                className="border-none shadow-none focus-visible:ring-0 p-0 text-base h-auto max-h-32 placeholder:text-gray-400"
+              />
+            </div>
+            <Button
+              type="submit"
+              size="icon"
+              className="h-12 w-12 rounded-full bg-[#075E54] hover:bg-[#128C7E] shadow-md transition-transform active:scale-95 flex-shrink-0"
+              disabled={!messageInput.trim()}
+            >
+              <Send className="h-5 w-5 text-white ml-0.5" />
             </Button>
           </form>
         </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

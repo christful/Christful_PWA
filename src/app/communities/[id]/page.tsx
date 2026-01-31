@@ -45,16 +45,30 @@ export default function CommunityDetailPage() {
   const fetchCommunityDetail = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.COMMUNITY_DETAIL(communityId), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCommunity(data);
-        setIsMember(data.memberships?.length > 0);
+      // Fetch current user and community detail in parallel
+      const [communityResponse, meResponse] = await Promise.all([
+        fetch(ENDPOINTS.COMMUNITY_DETAIL(communityId), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(ENDPOINTS.ME, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ]);
+
+      if (communityResponse.ok) {
+        const communityData = await communityResponse.json();
+        setCommunity(communityData);
+
+        let isCreator = false;
+        if (meResponse.ok) {
+          const meData = await meResponse.json();
+          if (meData.user?.id === communityData.creator.id) {
+            isCreator = true;
+          }
+        }
+
+        setIsMember(communityData.memberships?.length > 0 || isCreator);
       } else {
         toast.error("Community not found");
         router.push("/communities");
