@@ -6,11 +6,10 @@ import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
-import { ChevronLeft, Users, Settings, Plus } from "lucide-react";
+import { ChevronLeft, Settings, Plus } from "lucide-react";
 import Link from "next/link";
 
 interface Community {
@@ -36,13 +35,14 @@ export default function CommunityDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  // refreshKey unused but kept for compatibility if needed, though interval drives it
+  // const [refreshKey, setRefreshKey] = useState(0); 
 
   useEffect(() => {
     if (communityId) {
       fetchCommunityDetail();
     }
-  }, [communityId, refreshKey]);
+  }, [communityId]);
 
   useEffect(() => {
     // Refresh groups every 3 seconds when on this page
@@ -58,25 +58,40 @@ export default function CommunityDetailPage() {
   const fetchCommunityDetail = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.COMMUNITY_DETAIL(communityId), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCommunity(data);
-        const currentUserId = localStorage.getItem("userId");
-        setIsMember(data.memberships?.length > 0);
-        setIsCreator(data.creator?.id === currentUserId);
+      // Fetch current user and community detail in parallel to safely determine creator status
+      const [communityResponse, meResponse] = await Promise.all([
+        fetch(ENDPOINTS.COMMUNITY_DETAIL(communityId), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(ENDPOINTS.ME, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ]);
+
+      if (communityResponse.ok) {
+        const communityData = await communityResponse.json();
+        setCommunity(communityData);
+
+        let creatorCheck = false;
+        if (meResponse.ok) {
+          const meData = await meResponse.json();
+          if (meData.user?.id === communityData.creator.id) {
+            creatorCheck = true;
+          }
+        }
+        setIsCreator(creatorCheck);
+        setIsMember(communityData.memberships?.length > 0 || creatorCheck);
       } else {
-        toast.error("Community not found");
-        router.push("/communities");
+        // Only redirect if it's the initial load to avoid jumping during refresh
+        if (isLoading) {
+          toast.error("Community not found");
+          router.push("/communities");
+        }
       }
     } catch (error) {
       console.error("Error fetching community:", error);
-      toast.error("Failed to load community");
+      if (isLoading) toast.error("Failed to load community");
     } finally {
       setIsLoading(false);
     }

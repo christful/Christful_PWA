@@ -16,14 +16,14 @@ function CreateGroupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const communityId = searchParams.get("communityId");
-  
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       toast.error("Group name is required");
       return;
@@ -69,7 +69,7 @@ function CreateGroupContent() {
 
       if (response.ok) {
         toast.success("Group created successfully!");
-        
+
         // Wait a moment before redirecting to ensure server has processed
         setTimeout(() => {
           if (communityId) {
