@@ -118,98 +118,100 @@ export default function CommunitiesPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-[#FBFDFF] pb-20 md:pb-0">
-			<Header />
-
-			<div className="pt-20 pb-10">
-				<div className="max-w-6xl mx-auto px-4">
-					{/* Header Section */}
-					<div className="flex items-center justify-between mb-8">
-						<h1 className="text-3xl font-bold">Communities</h1>
+		<div className="min-h-screen bg-white">
+			{/* WhatsApp-style Header */}
+			<div className="fixed top-0 left-0 right-0 z-10 bg-[#075E54] text-white shadow-md">
+				<div className="flex items-center justify-between px-4 h-[60px] max-w-4xl mx-auto">
+					<h1 className="text-xl font-bold">Communities</h1>
+					<div className="flex items-center gap-4">
+						<Search className="h-5 w-5 cursor-pointer" />
 						<Link href="/communities/create">
-							<Button className="gap-2">
-								<Plus className="h-4 w-4" />
-								Create Community
-							</Button>
+							<Plus className="h-6 w-6 cursor-pointer" />
 						</Link>
 					</div>
+				</div>
+				{/* Tabs or Sub-header could go here */}
+			</div>
 
-					{/* Search Section */}
-					<div className="relative mb-8">
-						<Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-						<Input
-							placeholder="Search communities..."
-							className="pl-10 rounded-full h-12"
-							value={searchQuery}
-							onChange={(e) => handleSearch(e.target.value)}
-						/>
+			<div className="pt-[60px] pb-20 md:pb-0">
+				<div className="max-w-4xl mx-auto">
+					{/* Search Bar - Optional, maybe keep hidden behind icon for true WhatsApp feel, 
+                        but inline is better for web usability */}
+					<div className="p-3 bg-white border-b">
+						<div className="relative">
+							<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Input
+								placeholder="Search communities..."
+								className="pl-10 rounded-lg bg-slate-100 border-none h-10 focus-visible:ring-1 focus-visible:ring-[#075E54]"
+								value={searchQuery}
+								onChange={(e) => handleSearch(e.target.value)}
+							/>
+						</div>
 					</div>
 
-					{/* Communities Grid */}
+					{/* Communities List */}
 					{isLoading ? (
 						<div className="flex items-center justify-center py-12">
-							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+							<div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#075E54]"></div>
 						</div>
 					) : communities.length > 0 ? (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						<div className="bg-white">
 							{communities.map((community) => (
 								<Link
 									key={community.id}
 									href={`/communities/${community.id}`}
 								>
-									<Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-										<CardHeader className="pb-3">
-											<div className="flex items-start justify-between mb-2">
-												<div className="flex-1">
-													<CardTitle className="line-clamp-2">
-														{community.name}
-													</CardTitle>
-													<CardDescription className="text-xs mt-1">
-														Created by{" "}
-														{community.creator.firstName}{" "}
-														{community.creator.lastName}
-													</CardDescription>
-												</div>
+									<div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100">
+										<Avatar className="h-12 w-12 flex-shrink-0">
+											<AvatarImage
+												src={community.avatarUrl}
+												alt={community.name}
+												className="object-cover"
+											/>
+											<AvatarFallback className="bg-slate-200 text-slate-500 font-medium text-lg">
+												{community.name.charAt(0).toUpperCase()}
+											</AvatarFallback>
+										</Avatar>
+
+										<div className="flex-1 min-w-0">
+											<div className="flex justify-between items-baseline mb-1">
+												<h3 className="font-semibold text-slate-900 truncate text-[17px]">
+													{community.name}
+												</h3>
+												{/* We don't have a 'last active' time for community generally, maybe member count? */}
+												<span className="text-xs text-slate-400 font-medium whitespace-nowrap ml-2">
+													{community.members?.length || 0} members
+												</span>
 											</div>
-										</CardHeader>
-
-										<CardContent className="space-y-4">
-											<p className="text-sm text-muted-foreground line-clamp-2">
-												{community.description}
-											</p>
-
-											<div className="flex items-center gap-2 text-sm text-muted-foreground">
-												<Users className="h-4 w-4" />
-												{community.members?.length || 0} members
+											<div className="flex justify-between items-center gap-2">
+												<p className="text-slate-500 text-sm truncate leading-5 flex-1">
+													{community.description}
+												</p>
+												{!community.isMember && (
+													<Button
+														size="sm"
+														variant="ghost"
+														className="h-7 text-[#075E54] hover:text-[#128C7E] px-2 text-xs font-bold uppercase"
+														onClick={(e) => {
+															e.preventDefault();
+															handleJoinCommunity(community.id);
+														}}
+													>
+														Join
+													</Button>
+												)}
 											</div>
-
-											<Button
-												className="w-full"
-												variant={
-													community.isMember
-														? "secondary"
-														: "default"
-												}
-												onClick={(e) => {
-													e.preventDefault();
-													if (!community.isMember) {
-														handleJoinCommunity(community.id);
-													}
-												}}
-											>
-												{community.isMember ? "Member" : "Join"}
-											</Button>
-										</CardContent>
-									</Card>
+										</div>
+									</div>
 								</Link>
 							))}
 						</div>
 					) : (
-						<Card className="text-center py-12">
+						<div className="text-center py-12">
 							<p className="text-muted-foreground">
 								No communities found
 							</p>
-						</Card>
+						</div>
 					)}
 				</div>
 			</div>

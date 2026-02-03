@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { ChevronLeft, Send, MoreHorizontal } from "lucide-react";
+import { MessageBubble } from "@/components/ui/message-bubble";
 
 interface GroupMessage {
   id: string;
@@ -160,109 +161,108 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#E5DDD5] flex flex-col relative">
-      {/* Fixed Header */}
-      <div className="bg-[#075E54] text-white fixed top-0 w-full z-10 shadow-md">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-1 hover:bg-white/10 rounded-full transition-colors"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <Avatar className="h-10 w-10 border-2 border-white/20">
-              <AvatarFallback className="bg-primary-foreground text-primary font-bold">
+    <div className="fixed inset-0 bg-[#efeae2] flex flex-col z-50">
+      {/* WhatsApp Chat Header */}
+      <div className="bg-[#075E54] px-4 py-2 flex items-center justify-between text-white shadow-sm flex-shrink-0 z-10">
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.back()} className="p-1 -ml-2 rounded-full hover:bg-white/10">
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+
+          <div className="flex items-center gap-3 cursor-pointer">
+            <Avatar className="h-10 w-10 cursor-pointer">
+              <AvatarFallback className="bg-slate-200 text-slate-500 font-medium">
                 {group.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h1 className="font-bold text-lg leading-tight">{group.name}</h1>
-              <p className="text-xs text-white/80">
-                {group.members.length} members
+            <div className="flex flex-col justify-center">
+              <h1 className="font-semibold text-base leading-none mb-1">{group.name}</h1>
+              <p className="text-xs text-slate-300 leading-none truncate max-w-[150px]">
+                {group.members.map(m => m.firstName).join(", ")}
               </p>
             </div>
           </div>
-          <button className="p-2 hover:bg-white/10 rounded-full">
-            <MoreHorizontal className="h-6 w-6" />
-          </button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Placeholder icons for video/call */}
+          <div className="bg-transparent w-6 h-6 rounded-full" />
+          <div className="bg-transparent w-6 h-6 rounded-full" />
+          <MoreHorizontal className="h-5 w-5" />
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 pt-24 pb-24 overflow-y-auto px-4 md:px-0">
-        <div className="max-w-4xl mx-auto flex flex-col gap-2">
-          {messages.length > 0 ? (
-            messages.map((message) => {
+      {/* Chat Background & Messages */}
+      <div
+        className="flex-1 overflow-y-auto p-4 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat opacity-100"
+        style={{ backgroundColor: '#efeae2' }} // Fallback
+      >
+        {messages.length > 0 ? (
+          <div className="flex flex-col justify-end min-h-full pb-2">
+            {messages.map((message) => {
               const isMe = message.sender.id === currentUserId;
               return (
-                <div
+                <MessageBubble
                   key={message.id}
-                  className={`flex gap-2 max-w-[85%] md:max-w-[70%] ${isMe ? 'self-end flex-row-reverse' : 'self-start'}`}
-                >
-                  {!isMe && (
-                    <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
-                      <AvatarImage src={message.sender.avatarUrl} />
-                      <AvatarFallback>{message.sender.firstName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  )}
-
-                  <div
-                    className={`rounded-2xl px-4 py-2 shadow-sm relative ${isMe
-                      ? 'bg-[#DCF8C6] rounded-tr-none text-gray-800'
-                      : 'bg-white rounded-tl-none text-gray-800'
-                      }`}
-                  >
-                    {!isMe && (
-                      <p className={`text-xs font-bold mb-1 ${isMe ? 'text-green-700' : 'text-blue-600'}`}>
-                        {message.sender.firstName} {message.sender.lastName}
-                      </p>
-                    )}
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {message.content}
-                    </p>
-                    <p className="text-[10px] text-gray-500 text-right mt-1 ml-4 block selection:bg-none">
-                      {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
+                  content={message.content}
+                  senderName={`${message.sender.firstName} ${message.sender.lastName}`}
+                  isMe={isMe}
+                  timestamp={new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  avatarUrl={message.sender.avatarUrl}
+                  status="read" // Hardcoded for demo
+                />
               );
-            })
-          ) : (
-            <div className="flex flex-col items-center justify-center p-8 mt-10">
-              <div className="bg-[#DCF8C6] p-4 rounded-full mb-4 shadow-sm opacity-80">
-                <Send className="h-8 w-8 text-[#075E54]" />
-              </div>
-              <p className="text-gray-500 text-center bg-white/80 px-4 py-2 rounded-lg shadow-sm">
-                No messages yet.<br />Be the first to say hello!
-              </p>
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="bg-[#dcf8c6] p-4 rounded-full mb-4 shadow-sm">
+              <Send className="h-8 w-8 text-[#075E54]" />
             </div>
-          )}
-        </div>
+            <p className="text-gray-500 text-sm bg-[#e9edef] px-3 py-1 rounded-lg shadow-sm">
+              Messages to this group are now secured with end-to-end encryption used for demo purposes.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Input Area */}
-      <div className="fixed bottom-0 w-full bg-[#F0F0F0] border-t border-gray-200 z-10 px-4 py-3 pb-safe-area">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
-            <div className="flex-1 bg-white rounded-full flex items-center px-4 py-2 shadow-sm border border-gray-100 focus-within:ring-1 focus-within:ring-green-500 transition-all">
-              <Input
-                placeholder="Type a message..."
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                className="border-none shadow-none focus-visible:ring-0 p-0 text-base h-auto max-h-32 placeholder:text-gray-400"
-              />
-            </div>
+      <div className="bg-[#f0f2f5] px-2 py-2 flex items-center gap-2 flex-shrink-0 pb-safe-area">
+        <Button size="icon" variant="ghost" className="text-gray-500 rounded-full h-10 w-10">
+          {/* Smiley Icon Placeholder */}
+          <span className="text-xl">😊</span>
+        </Button>
+        <Button size="icon" variant="ghost" className="text-gray-500 rounded-full h-10 w-10">
+          <span className="text-xl font-bold">+</span>
+        </Button>
+
+        <form onSubmit={handleSendMessage} className="flex-1 flex gap-2 items-center">
+          <Input
+            placeholder="Type a message..."
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
+            className="flex-1 bg-white border-none shadow-sm rounded-lg px-4 py-2 focus-visible:ring-0 text-base"
+          />
+          {messageInput.trim() ? (
             <Button
               type="submit"
               size="icon"
-              className="h-12 w-12 rounded-full bg-[#075E54] hover:bg-[#128C7E] shadow-md transition-transform active:scale-95 flex-shrink-0"
-              disabled={!messageInput.trim()}
+              className="bg-[#075E54] hover:bg-[#128C7E] text-white rounded-full h-10 w-10 shadow-md transition-transform active:scale-95"
             >
-              <Send className="h-5 w-5 text-white ml-0.5" />
+              <Send className="h-5 w-5 ml-0.5" />
             </Button>
-          </form>
-        </div>
+          ) : (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="text-gray-500 rounded-full h-10 w-10"
+            >
+              {/* Mic Icon Placeholder */}
+              <span className="text-xl">🎤</span>
+            </Button>
+          )}
+        </form>
       </div>
     </div>
   );

@@ -35,8 +35,6 @@ export default function CommunityDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
-  // refreshKey unused but kept for compatibility if needed, though interval drives it
-  // const [refreshKey, setRefreshKey] = useState(0); 
 
   useEffect(() => {
     if (communityId) {
@@ -134,150 +132,107 @@ export default function CommunityDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFDFF] pb-20 md:pb-0">
+    <div className="min-h-screen bg-[#F0F2F5] pb-20 md:pb-0 relative">
       <Header />
 
-      <div className="pt-20 pb-10">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Back Button */}
+      {/* WhatsApp-style Header for Community Detail */}
+      <div className="fixed top-0 left-0 right-0 z-10 bg-[#075E54] text-white shadow-md transition-all duration-300">
+        <div className="flex items-center gap-3 px-4 h-[60px] max-w-4xl mx-auto">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:underline mb-6"
+            className="p-1 -ml-1 rounded-full hover:bg-white/10"
           >
-            <ChevronLeft className="h-5 w-5" />
-            Back to Communities
+            <ChevronLeft className="h-6 w-6" />
           </button>
+          <h1 className="text-xl font-bold truncate flex-1">{community.name}</h1>
+          <Settings className="h-6 w-6 cursor-pointer" />
+        </div>
+      </div>
 
-          {/* Community Header */}
-          <Card className="mb-8 overflow-hidden">
-            <div className="h-40 bg-gradient-to-r from-primary/20 to-secondary/20"></div>
-            <CardContent className="pt-0">
-              <div className="flex flex-col md:flex-row gap-6 md:items-end md:-mt-20">
-                <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
-                  <AvatarImage
-                    src={community.avatarUrl}
-                    alt={community.name}
-                  />
-                  <AvatarFallback className="text-2xl">
-                    {community.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+      <div className="pt-[60px] pb-10">
+        <div className="max-w-4xl mx-auto">
 
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold mb-2">{community.name}</h1>
-                  <p className="text-muted-foreground mb-4">
-                    {community.description}
-                  </p>
+          {/* Community Info Card */}
+          <div className="bg-white shadow-sm mb-4 px-4 py-6 flex flex-col items-center text-center">
+            <Avatar className="h-24 w-24 mb-4 border-4 border-[#F0F2F5]">
+              <AvatarImage
+                src={community.avatarUrl}
+                alt={community.name}
+                className="object-cover"
+              />
+              <AvatarFallback className="text-3xl bg-slate-200 text-slate-500">
+                {community.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-1">{community.name}</h2>
+            <p className="text-slate-500 text-sm mb-4">
+              Group • {community.memberships?.length || 0} participants
+            </p>
+            <p className="text-slate-600 text-sm max-w-lg mx-auto">
+              {community.description}
+            </p>
 
-                  <div className="flex gap-4 text-sm text-muted-foreground mb-6">
-                    <div>
-                      <div className="font-semibold text-foreground">
-                        {community.memberships?.length || 0}
-                      </div>
-                      <div>Members</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-foreground">
-                        {community.groups?.length || 0}
-                      </div>
-                      <div>Groups</div>
-                    </div>
-                  </div>
-                </div>
+            <div className="mt-6 flex gap-3 w-full max-w-sm">
+              {!isMember ? (
+                <Button className="flex-1 bg-[#075E54] hover:bg-[#128C7E] rounded-full" onClick={() => handleJoinCommunity(community.id)}>
+                  Join Community
+                </Button>
+              ) : (
+                <Button variant="outline" className="flex-1 rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleLeaveCommunity}>
+                  Exit Community
+                </Button>
+              )}
+            </div>
+          </div>
 
-                {isCreator ? (
-                  <div className="flex gap-2">
-                    <Button variant="secondary">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Button>
-                  </div>
-                ) : isMember ? (
-                  <div className="flex gap-2">
-                    <Button variant="secondary">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleLeaveCommunity}
-                    >
-                      Leave
-                    </Button>
-                  </div>
-                ) : (
-                  <Button>Join Community</Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Groups Section */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Groups in this Community</h2>
+          {/* Groups Section List */}
+          <div className="bg-white shadow-sm mb-4">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-light">
+              <h3 className="text-[#075E54] font-semibold text-sm">GROUPS IN THIS COMMUNITY</h3>
               {isMember && (
                 <Link href={`/groups/create?communityId=${communityId}`}>
-                  <Button size="sm" className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Group
-                  </Button>
+                  <Plus className="h-5 w-5 text-[#075E54] cursor-pointer" />
                 </Link>
               )}
             </div>
+
             {community.groups && community.groups.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="divide-y divide-slate-100">
                 {community.groups.map((group) => (
-                  <Link
-                    key={group.id}
-                    href={`/groups/${group.id}`}
-                  >
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                      <CardHeader>
-                        <CardTitle className="line-clamp-1">
-                          {group.name}
-                        </CardTitle>
-                        <CardDescription className="line-clamp-2">
-                          {group.description}
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
+                  <Link key={group.id} href={`/groups/${group.id}`}>
+                    <div className="flex items-center gap-3 p-4 hover:bg-slate-50 cursor-pointer">
+                      <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold shrink-0">
+                        {group.name.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-slate-900 truncate">{group.name}</h4>
+                        <p className="text-sm text-slate-500 truncate">{group.description}</p>
+                      </div>
+                    </div>
                   </Link>
                 ))}
               </div>
             ) : (
-              <Card className="text-center py-8">
-                <p className="text-muted-foreground mb-4">No groups yet</p>
-                {isMember && (
-                  <Link href={`/groups/create?communityId=${communityId}`}>
-                    <Button size="sm">Create First Group</Button>
-                  </Link>
-                )}
-              </Card>
+              <div className="p-8 text-center text-slate-400 text-sm">
+                No groups created yet.
+              </div>
             )}
           </div>
 
-          {/* Creator Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Created by</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Avatar>
-                  <AvatarImage src={community.creator.avatarUrl} />
-                  <AvatarFallback>
-                    {community.creator.firstName.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">
-                    {community.creator.firstName} {community.creator.lastName}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Creator Info (Small) */}
+          <div className="bg-white shadow-sm px-4 py-4 flex items-center gap-3">
+            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">Created by</span>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={community.creator.avatarUrl} />
+                <AvatarFallback className="text-[10px]">{community.creator.firstName.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-slate-700 font-medium">
+                {community.creator.firstName} {community.creator.lastName}
+              </span>
+            </div>
+          </div>
+
         </div>
       </div>
 
