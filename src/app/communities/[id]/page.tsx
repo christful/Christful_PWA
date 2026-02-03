@@ -95,6 +95,26 @@ export default function CommunityDetailPage() {
     }
   };
 
+  const handleJoinCommunity = async (id: string) => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.JOIN_COMMUNITY(id), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast.success("Joined community successfully!");
+        fetchCommunityDetail();
+      }
+    } catch (error) {
+      console.error("Error joining community:", error);
+      toast.error("Failed to join community");
+    }
+  };
+
   const handleLeaveCommunity = async () => {
     try {
       const token = localStorage.getItem("auth_token");

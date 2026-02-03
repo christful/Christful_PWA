@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { Search, Plus, Users } from "lucide-react";
