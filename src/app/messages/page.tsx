@@ -1,3 +1,4 @@
+"use client"
 import { useEffect, useState, useRef } from "react";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
