@@ -46,31 +46,49 @@ export function SideNav() {
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-5">
-          <Link href="/create">
-            <Button className="rounded-full bg-secondary px-5 text-foreground w-fit hover:bg-secondary/80">
-              <Plus /> Create
+    <div className="w-full space-y-4">
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <div className="flex flex-col gap-3">
+          <Link href="/create" className="w-full">
+            <Button variant="ghost" className="w-full justify-start gap-3 h-12 rounded-lg hover:bg-slate-50 text-[#800517]">
+              <div className="bg-[#800517] text-white p-2 rounded-lg">
+                <Plus size={18} />
+              </div>
+              <span className="font-semibold">Create Post</span>
             </Button>
           </Link>
-          <Button className="rounded-full bg-secondary px-5 text-foreground w-fit hover:bg-secondary/80">
-            <BookOpenText /> Library
+
+          <Button variant="ghost" className="w-full justify-start gap-3 h-12 rounded-lg hover:bg-slate-50">
+            <div className="bg-slate-200 text-slate-600 p-2 rounded-lg">
+              <BookOpenText size={18} />
+            </div>
+            <span className="font-semibold">Library</span>
           </Button>
-          <Button className="rounded-full bg-secondary px-5 text-foreground w-fit hover:bg-secondary/80">
-            <Handshake /> Invite a Friend
+
+          <Button variant="ghost" className="w-full justify-start gap-3 h-12 rounded-lg hover:bg-slate-50">
+            <div className="bg-slate-200 text-slate-600 p-2 rounded-lg">
+              <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </div>
+            <span className="font-semibold">Saved</span>
+          </Button>
+
+          <Button variant="ghost" className="w-full justify-start gap-3 h-12 rounded-lg hover:bg-slate-50">
+            <div className="bg-slate-200 text-slate-600 p-2 rounded-lg">
+              <Handshake size={18} />
+            </div>
+            <span className="font-semibold">Invite Friends</span>
           </Button>
         </div>
-        <hr />
-        <div className="flex flex-col gap-5">
-          <div className="flex gap-10 items-center">
-            <h1 className="text-[20px] font-medium text-[#556B2F]">Following</h1>
-            <Link href="">
-              <span className="text-sm text-foreground">
-                <MoreHorizontal size={20} />
-              </span>
-            </Link>
-          </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-slate-800">Following</h3>
+          <MoreHorizontal size={18} className="text-slate-400 cursor-pointer" />
+        </div>
+        <div className="space-y-4">
           {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading...</div>
           ) : following.length > 0 ? (

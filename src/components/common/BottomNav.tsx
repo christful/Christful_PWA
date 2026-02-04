@@ -1,5 +1,5 @@
 "use client";
-import { House, Users, Plus, MessageSquare, User, Video } from "lucide-react";
+import { House, Users, Plus, MessageSquare, User, Clapperboard } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,7 +8,7 @@ export function BottomNav() {
 
     const navItems = [
         { icon: House, label: "Home", href: "/home" },
-        { icon: Users, label: "Communities", href: "/communities" },
+        { icon: Clapperboard, label: "Reels", href: "/video" },
         { icon: Plus, label: "Create", href: "/communities/create", isMain: true },
         { icon: MessageSquare, label: "Messages", href: "/messages" },
         { icon: User, label: "Profile", href: "/profile" },

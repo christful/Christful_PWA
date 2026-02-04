@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, House, Users, Plus, User, LogOut, Video } from "lucide-react";
+import { Search, House, Users, Plus, User, LogOut, Clapperboard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -102,8 +102,8 @@ export function Header() {
           <Link href="/communities">
             <Users className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
           </Link>
-          <Link href="/video" title="Videos" className="hidden lg:block">
-            <Video className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
+          <Link href="/video" title="Reels" className="hidden lg:block">
+            <Clapperboard className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
           </Link>
           <Link href="/messages" title="Messages">
             <svg className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +117,7 @@ export function Header() {
           <Search className="h-6 w-6 text-muted-foreground lg:hidden cursor-pointer hover:text-[#800517]" />
 
           <Link href="/video" className="md:hidden">
-            <Video className="h-6 w-6 text-muted-foreground" />
+            <Clapperboard className="h-6 w-6 text-muted-foreground" />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-4">
