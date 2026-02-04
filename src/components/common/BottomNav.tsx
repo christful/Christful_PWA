@@ -9,7 +9,6 @@ export function BottomNav() {
     const navItems = [
         { icon: House, label: "Home", href: "/home" },
         { icon: Users, label: "Communities", href: "/communities" },
-        { icon: Video, label: "Videos", href: "/video" },
         { icon: Plus, label: "Create", href: "/communities/create", isMain: true },
         { icon: MessageSquare, label: "Messages", href: "/messages" },
         { icon: User, label: "Profile", href: "/profile" },

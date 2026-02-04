@@ -116,7 +116,7 @@ export default function MessagesPage() {
               <h3 className="font-bold">{selectedChat.name}</h3>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon"><Info size={20} className="text-primary" /></Button>
+              <Button variant="ghost" size="icon"><Info size={20} className="text-[#800517]" /></Button>
               <Button variant="ghost" size="icon"><MoreVertical size={20} /></Button>
             </div>
           </div>
@@ -145,12 +145,12 @@ export default function MessagesPage() {
 
           {/* Input Area */}
           <div className="p-4 border-t flex items-center gap-2">
-            <Plus className="text-primary cursor-pointer" />
+            <Plus className="text-[#800517] cursor-pointer" />
             <Input
               placeholder="Aa"
               className="rounded-full bg-slate-100 border-none h-10"
             />
-            <Button size="icon" className="rounded-full bg-primary h-10 w-10">
+            <Button size="icon" className="rounded-full bg-[#800517] h-10 w-10">
               <Send size={18} />
             </Button>
           </div>
@@ -177,7 +177,7 @@ export default function MessagesPage() {
           <div className="w-full space-y-4">
             <div className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
               <span className="font-medium">Theme</span>
-              <div className="w-4 h-4 rounded-full bg-primary"></div>
+              <div className="w-4 h-4 rounded-full bg-[#800517]"></div>
             </div>
             <div className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
               <span className="font-medium">Media, Files & Links</span>

@@ -9,23 +9,25 @@ interface PageGridProps {
 
 export function PageGrid({ left, center, right }: PageGridProps) {
   return (
-    <div className="grid grid-cols-1 pt-20 lg:grid-cols-[280px_minmax(0,1fr)_280px] gap-4 py-5">
+    <div className="pt-20 pb-5 min-h-screen">
+      <div className="max-w-full mx-auto px-[5px] grid grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)_380px] gap-2">
 
-      {/* Left column */}
-      <aside className="hidden lg:block sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto pr-2 custom-scrollbar">
-        {left}
-      </aside>
+        {/* Left column */}
+        <aside className="hidden lg:block sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto custom-scrollbar">
+          {left}
+        </aside>
 
-      {/* Center column */}
-      <main className="w-full">
-        {center}
-      </main>
+        {/* Center column */}
+        <main className="w-full">
+          {center}
+        </main>
 
-      {/* Right column */}
-      <aside className="hidden lg:block sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto pl-2 custom-scrollbar">
-        {right}
-      </aside>
+        {/* Right column */}
+        <aside className="hidden lg:block sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto custom-scrollbar">
+          {right}
+        </aside>
 
+      </div>
     </div>
   );
 }
