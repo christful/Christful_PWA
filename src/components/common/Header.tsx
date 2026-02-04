@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, House, Users, Plus, User, LogOut } from "lucide-react";
+import { Search, House, Users, Plus, User, LogOut, Video } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -98,6 +98,9 @@ export function Header() {
         </Link>
         <Link href="/communities">
           <Users className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+        </Link>
+        <Link href="/video" title="Videos">
+          <Video className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
         </Link>
         <Link href="/messages" title="Messages">
           <svg className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
