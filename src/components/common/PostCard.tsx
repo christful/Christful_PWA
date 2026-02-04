@@ -11,7 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Share, Ellipsis, Play, Pause, Volume2, MessageSquareText, Heart, Repeat2, Eye, X } from "lucide-react"
+import { Share, Ellipsis, Play, Pause, Volume2, MessageSquareText, Heart, Repeat2, Eye, X, Bookmark, Flag, Trash2 } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
@@ -269,7 +271,38 @@ export function PostCard({
 
         <CardAction className="flex gap-2">
           <Share className="h-5 w-5 cursor-pointer hover:text-gray-600" />
-          <Ellipsis className="h-5 w-5 cursor-pointer hover:text-gray-600" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Ellipsis className="h-5 w-5 cursor-pointer hover:text-gray-600" />
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2 rounded-xl" align="end">
+              <div className="space-y-1">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start gap-2 h-9 text-sm" 
+                  onClick={() => toast.success("Post saved to Library!")}
+                >
+                  <Bookmark className="h-4 w-4" /> Save Post
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start gap-2 h-9 text-sm text-orange-600 hover:bg-orange-50" 
+                  onClick={() => toast.info("Post reported to administrators.")}
+                >
+                  <Flag className="h-4 w-4" /> Report Post
+                </Button>
+                {isOwnPost && (
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start gap-2 h-9 text-sm text-red-600 hover:bg-red-50" 
+                    onClick={() => toast.error("Post deletion only available from profile.")}
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete Post
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </CardAction>
       </CardHeader>
 

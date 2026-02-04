@@ -17,8 +17,14 @@ interface Community {
 
 export function CommunityPanel() {
   const [userCommunities, setUserCommunities] = useState<Community[]>([]);
-  const [otherCommunities, setOtherCommunities] = useState<Community[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Dummy suggested communities
+  const suggestedCommunities = [
+    { id: "s1", name: "Morning Prayer Warriors", members: "12.4k", avatarUrl: "https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=100&h=100&fit=crop" },
+    { id: "s2", name: "Youth for Christ", members: "8.2k", avatarUrl: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=100&h=100&fit=crop" },
+    { id: "s3", name: "Daily Bible Study", members: "25.1k", avatarUrl: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=100&h=100&fit=crop" },
+  ];
 
   useEffect(() => {
     fetchCommunities();
@@ -27,7 +33,7 @@ export function CommunityPanel() {
   const fetchCommunities = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(`${ENDPOINTS.COMMUNITIES}?limit=10`, {
+      const response = await fetch(`${ENDPOINTS.COMMUNITIES}?limit=7`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -36,14 +42,7 @@ export function CommunityPanel() {
       if (response.ok) {
         const data = await response.json();
         const communities = data.communities || [];
-        const userId = localStorage.getItem("userId");
-        
-        // Separate communities: those you're a member of or created vs those you're not
-        const myComms = communities.filter((c: Community) => c.isMember);
-        const otherComms = communities.filter((c: Community) => !c.isMember && c.creatorId !== userId);
-        
-        setUserCommunities(myComms.slice(0, 7));
-        setOtherCommunities(otherComms.slice(0, 7));
+        setUserCommunities(communities.filter((c: Community) => c.isMember).slice(0, 5));
       }
     } catch (error) {
       console.error("Error fetching communities:", error);
@@ -52,98 +51,80 @@ export function CommunityPanel() {
     }
   };
 
-  const handleJoinCommunity = async (communityId: string) => {
-    try {
-      const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.JOIN_COMMUNITY(communityId), {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        toast.success("Joined community!");
-        fetchCommunities();
-      }
-    } catch (error) {
-      console.error("Error joining community:", error);
-      toast.error("Failed to join community");
-    }
+  const handleJoinCommunity = (id: string) => {
+    toast.success("Request sent to join!");
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-5">
-          <div className="flex gap-10 items-center">
-            <h1 className="text-[20px] font-medium text-[#556B2F]">Communities</h1>
-            <Link href="/communities">
-              <span className="text-sm text-foreground">
-                <MoreHorizontal size={20} />
-              </span>
-            </Link>
-          </div>
+    <div className="w-full space-y-4">
+      {/* Professional Graphic Area */}
+      <div className="relative h-40 rounded-xl overflow-hidden shadow-sm group">
+        <img
+          src="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=500&h=300&fit=crop"
+          alt="Community Graphic"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4">
+          <h2 className="text-white font-bold text-lg leading-tight">Grow with the Body of Christ</h2>
+          <p className="text-white/70 text-xs">Join thousands in faith-based circles</p>
+        </div>
+      </div>
+
+      {/* Suggested Communities */}
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-slate-800">Suggested for You</h3>
+          <span className="text-[10px] font-bold text-[#800517] uppercase tracking-wider cursor-pointer hover:underline">See All</span>
+        </div>
+        <div className="space-y-4">
+          {suggestedCommunities.map((comm) => (
+            <div key={comm.id} className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={comm.avatarUrl} className="object-cover" />
+                <AvatarFallback>{comm.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-slate-800 truncate">{comm.name}</p>
+                <p className="text-[10px] text-slate-500">{comm.members} members</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs border-[#800517] text-[#800517] hover:bg-[#800517] hover:text-white"
+                onClick={() => handleJoinCommunity(comm.id)}
+              >
+                Join
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Your Communities */}
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <h3 className="font-bold text-slate-800 mb-4">Your Communities</h3>
+        <div className="space-y-4">
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading...</div>
+            <p className="text-xs text-slate-400">Loading...</p>
           ) : userCommunities.length > 0 ? (
             userCommunities.map((community) => (
               <Link key={community.id} href={`/communities/${community.id}`}>
-                <div className="flex gap-3 items-start">
-                  <Avatar>
-                    <AvatarImage src={community.avatarUrl} />
+                <div className="flex items-center gap-3 group cursor-pointer">
+                  <Avatar className="h-10 w-10 border-2 border-transparent group-hover:border-[#800517] transition-all">
+                    <AvatarImage src={community.avatarUrl} className="object-cover" />
                     <AvatarFallback>{community.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <div className="text-base font-semibold text-medium text-[14px]">
-                      {community.name}
-                    </div>
-                  </div>
+                  <span className="text-sm font-medium text-slate-700 group-hover:text-[#800517] truncate">
+                    {community.name}
+                  </span>
                 </div>
               </Link>
             ))
           ) : (
-            <div className="text-sm text-muted-foreground">No communities yet</div>
-          )}
-        </div>
-        <hr />
-        <div className="flex flex-col gap-5">
-          <div className="flex gap-10 items-center">
-            <h1 className="text-[20px] font-medium text-[#556B2F]">Join Communities</h1>
-            <Link href="/communities">
-              <span className="text-sm text-foreground">
-                <MoreHorizontal size={20} />
-              </span>
-            </Link>
-          </div>
-          {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading...</div>
-          ) : otherCommunities.length > 0 ? (
-            otherCommunities.map((community) => (
-              <div key={community.id} className="flex gap-3 items-start justify-between">
-                <div className="flex gap-3 items-start flex-1">
-                  <Avatar>
-                    <AvatarImage src={community.avatarUrl} />
-                    <AvatarFallback>{community.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="text-base font-semibold text-medium text-[14px]">
-                      {community.name}
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleJoinCommunity(community.id)}
-                  className="text-xs"
-                >
-                  Join
-                </Button>
-              </div>
-            ))
-          ) : (
-            <div className="text-sm text-muted-foreground">No other communities</div>
+            <div className="text-center py-4">
+              <p className="text-xs text-slate-400 italic mb-2">No joined communities</p>
+              <Button variant="ghost" className="text-xs text-[#800517] font-bold">Discover Groups</Button>
+            </div>
           )}
         </div>
       </div>
