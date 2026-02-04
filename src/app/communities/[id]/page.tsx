@@ -7,11 +7,13 @@ import { BottomNav } from "@/components/common/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { ChevronLeft, Settings, Plus, Globe, Users as UsersIcon, Info, Image as ImageIcon, Calendar, ShieldCheck, Search } from "lucide-react";
 import { PostCard } from "@/components/common/PostCard";
 import { PageGrid } from "@/components/common/PageGrid";
+import Link from "next/link";
 
 interface Community {
   id: string;
