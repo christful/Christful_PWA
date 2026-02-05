@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
 import { PageGrid } from "@/components/common/PageGrid";
@@ -37,22 +37,15 @@ export default function MessagesPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupDescription, setNewGroupDescription] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchGroupChats();
-  }, []);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [selectedChat, mobileView]);
-
-  const fetchGroupChats = async () => {
+  const fetchGroupChats = useCallback(async () => {
     try {
       const token = localStorage.getItem("auth_token");
       const response = await fetch(ENDPOINTS.GROUPS, {
@@ -73,7 +66,17 @@ export default function MessagesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedChat]);
+
+  useEffect(() => {
+    fetchGroupChats();
+  }, [fetchGroupChats]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [selectedChat, mobileView]);
 
   const handleSelectChat = (chat: GroupChat) => {
     setSelectedChat(chat);
@@ -125,6 +128,36 @@ export default function MessagesPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      toast.error("Group name is required");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.GROUPS, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newGroupName, description: newGroupDescription })
+      });
+      if (response.ok) {
+        toast.success("Group created successfully!");
+        setIsCreateModalOpen(false);
+        setNewGroupName("");
+        setNewGroupDescription("");
+        fetchGroupChats();
+      } else {
+        toast.error("Failed to create group");
+      }
+    } catch (error) {
+      console.error("Error creating group:", error);
+      toast.error("An error occurred");
+    }
+  };
+
   const handleAction = (action: string) => {
     toast.info(`${action} clicked! (Coming soon)`);
   };
@@ -138,7 +171,12 @@ export default function MessagesPage() {
       <div className="p-4 border-b">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-slate-900">Messages</h2>
-          <Button variant="ghost" size="icon" className="bg-slate-100 rounded-full hover:bg-[#800517] hover:text-white transition-all">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-slate-100 rounded-full hover:bg-[#800517] hover:text-white transition-all"
+          >
             <Plus size={20} />
           </Button>
         </div>
@@ -432,7 +470,47 @@ export default function MessagesPage() {
         left={<ChatList />}
         center={<ActiveChat />}
         right={<div className="hidden lg:block h-full"><ProfileView selectedChat={selectedChat} handleAction={handleAction} /></div>}
+        leftMobileVisibility={mobileView === "list" ? "block" : "hidden"}
+        centerMobileVisibility={mobileView === "chat" ? "block" : "hidden"}
       />
+
+      {/* Create Group Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">New Group</h2>
+              <Button variant="ghost" size="icon" onClick={() => setIsCreateModalOpen(false)} className="rounded-full">
+                <Plus size={20} className="rotate-45" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Group Name</label>
+                <Input
+                  placeholder="e.g. Prayer Warriors"
+                  className="rounded-xl bg-slate-50 border-slate-200 h-12 focus-visible:ring-[#800517]"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Description</label>
+                <textarea
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#800517] min-h-[100px] transition-all"
+                  placeholder="What is this group about?"
+                  value={newGroupDescription}
+                  onChange={(e) => setNewGroupDescription(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3 justify-end mt-8">
+                <Button variant="ghost" className="rounded-full px-6" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                <Button className="bg-[#800517] hover:bg-[#a0061d] rounded-full px-8 font-bold shadow-lg shadow-red-100" onClick={handleCreateGroup}>Create Group</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <BottomNav />
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }

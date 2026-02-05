@@ -39,6 +39,9 @@ export default function CommunityDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupDescription, setNewGroupDescription] = useState("");
 
   useEffect(() => {
     if (communityId) {
@@ -94,6 +97,36 @@ export default function CommunityDetailPage() {
     }
   };
 
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      toast.error("Group name is required");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.COMMUNITY_GROUPS(communityId), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newGroupName, description: newGroupDescription })
+      });
+      if (response.ok) {
+        toast.success("Group created successfully!");
+        setIsCreateGroupModalOpen(false);
+        setNewGroupName("");
+        setNewGroupDescription("");
+        fetchCommunityDetail();
+      } else {
+        toast.error("Failed to create group");
+      }
+    } catch (error) {
+      console.error("Error creating group:", error);
+      toast.error("An error occurred");
+    }
+  };
+
   const Sidebar = () => (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b">
@@ -118,7 +151,19 @@ export default function CommunityDetailPage() {
         </div>
       </div>
       <div className="p-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Groups in Community</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Groups in Community</h3>
+          {(isCreator || isMember) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[10px] font-bold text-[#800517] hover:bg-red-50 flex gap-1 items-center px-2 rounded-full border border-red-100"
+              onClick={() => setIsCreateGroupModalOpen(true)}
+            >
+              <Plus size={12} /> Create
+            </Button>
+          )}
+        </div>
         <div className="space-y-2">
           {community?.groups?.map(group => (
             <Link key={group.id} href={`/groups/${group.id}`}>
@@ -222,7 +267,7 @@ export default function CommunityDetailPage() {
             <Globe className="text-slate-400 mt-1" size={18} />
             <div>
               <p className="text-sm font-bold">Public</p>
-              <p className="text-xs text-slate-500">Anyone can see who's in the group and what they post.</p>
+              <p className="text-xs text-slate-500">Anyone can see who&apos;s in the group and what they post.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
