@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
-import { Mail, MapPin, Link as LinkIcon, Calendar, UserPlus, UserCheck, Edit2, X, Upload } from "lucide-react";
+import { Mail, MapPin, Link as LinkIcon, Calendar, UserPlus, UserCheck, Edit2, X, Upload, Plus } from "lucide-react";
 import { PostCard } from "@/components/common/PostCard";
 
 interface UserProfile {
