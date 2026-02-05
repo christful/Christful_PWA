@@ -102,7 +102,7 @@ export function Header() {
           <Link href="/communities">
             <Users className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
           </Link>
-          <Link href="/video" title="Reels" className="hidden lg:block">
+          <Link href="/video" title="Reels" className="hidden md:block">
             <Clapperboard className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
           </Link>
           <Link href="/messages" title="Messages">

@@ -12,7 +12,7 @@ import {
   Search, MessageSquare, Send, Info, MoreVertical, Plus,
   Mic, Smile, Phone, Video as VideoIcon, ChevronLeft,
   Flag, LogOut, ShieldAlert, Trash2, Volume2, Heart,
-  Users as UsersIcon, Image as ImageIcon
+  Users as UsersIcon, Image as ImageIcon, User
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -35,6 +35,10 @@ export default function MessagesPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +65,7 @@ export default function MessagesPage() {
         setGroupChats(groups);
         if (groups.length > 0 && !selectedChat) {
           setSelectedChat(groups[0]);
+          // Don't set mobileView to "chat" automatically on load
         }
       }
     } catch (error) {
@@ -79,13 +84,45 @@ export default function MessagesPage() {
     setMessage(prev => prev + emoji);
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    if (!isRecording) {
-      toast.info("Recording voice note...");
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
     } else {
-      toast.success("Voice note captured (dummy)");
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+
+        const chunks: BlobPart[] = [];
+        mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          setAudioBlob(blob);
+          toast.success("Voice note captured!");
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecordingDuration(0);
+        timerRef.current = setInterval(() => {
+          setRecordingDuration(prev => prev + 1);
+        }, 1000);
+      } catch (err) {
+        console.error("Recording error:", err);
+        toast.error("Could not access microphone");
+      }
     }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleAction = (action: string) => {
@@ -270,9 +307,34 @@ export default function MessagesPage() {
             </div>
 
             {isRecording && (
-              <div className="flex items-center gap-2 self-end bg-red-50 border border-red-100 p-2 px-4 rounded-full animate-pulse">
-                <Mic size={14} className="text-red-500" />
-                <span className="text-xs font-bold text-red-600">Recording... 00:0{Math.floor(Math.random() * 9)}</span>
+              <div className="flex items-center gap-2 self-end bg-red-50 border border-red-100 p-2 px-4 rounded-full animate-pulse shadow-sm">
+                <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
+                <span className="text-xs font-bold text-red-600">Recording... {formatDuration(recordingDuration)}</span>
+              </div>
+            )}
+
+            {audioBlob && !isRecording && (
+              <div className="flex items-center gap-3 self-end bg-slate-100 p-2 px-4 rounded-2xl border shadow-sm">
+                <Mic size={14} className="text-[#800517]" />
+                <span className="text-xs font-medium text-slate-600">Voice note ready</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-red-600 hover:bg-red-50"
+                  onClick={() => setAudioBlob(null)}
+                >
+                  Discard
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 px-3 text-xs bg-[#800517]"
+                  onClick={() => {
+                    toast.success("Voice note sent!");
+                    setAudioBlob(null);
+                  }}
+                >
+                  Send
+                </Button>
               </div>
             )}
           </div>
@@ -385,48 +447,101 @@ export default function MessagesPage() {
 function ProfileView({ selectedChat, handleAction }: { selectedChat: GroupChat | null, handleAction: (a: string) => void }) {
   if (!selectedChat) return (
     <div className="bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] p-6 flex flex-col items-center justify-center text-slate-300">
-      <UsersIcon size={48} className="opacity-20 mb-2" />
-      <p className="text-sm">Select a group to see info</p>
+      <MessageSquare size={48} className="opacity-10 mb-4" />
+      <p className="text-sm font-medium text-slate-400">Select a conversation</p>
     </div>
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] p-6 flex flex-col items-center overflow-y-auto custom-scrollbar">
-      <Avatar className="h-24 w-24 mb-4 ring-4 ring-slate-50 shadow-md">
-        <AvatarFallback className="text-3xl font-bold bg-slate-100 text-[#800517]">{selectedChat.name.charAt(0).toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <h2 className="text-xl font-bold text-slate-800 text-center">{selectedChat.name}</h2>
-      <p className="text-green-500 text-xs font-bold mb-8 flex items-center gap-1">
-        <div className="h-2 w-2 bg-green-500 rounded-full"></div> Group Chat
-      </p>
-
-      <div className="w-full space-y-2">
-        <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Options</div>
-        <div onClick={() => handleAction("Theme")} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group">
-          <span className="text-sm font-semibold text-slate-600 group-hover:text-slate-900">Theme</span>
-          <div className="w-4 h-4 rounded-full bg-[#800517]"></div>
-        </div>
-        <div onClick={() => handleAction("Media")} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group">
-          <span className="text-sm font-semibold text-slate-600 group-hover:text-slate-900">Media & Files</span>
-          <Info size={16} className="text-slate-300 group-hover:text-[#800517]" />
-        </div>
-        <div onClick={() => handleAction("Search")} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group">
-          <span className="text-sm font-semibold text-slate-600 group-hover:text-slate-900">Search Conversation</span>
-          <Search size={16} className="text-slate-300 group-hover:text-[#800517]" />
+    <div className="bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {/* Hero Section */}
+        <div className="flex flex-col items-center pt-8 pb-6 px-4">
+          <Avatar className="h-24 w-24 mb-4 ring-4 ring-slate-50 shadow-md">
+            <AvatarFallback className="text-3xl font-bold bg-slate-100 text-[#800517]">
+              {selectedChat.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <h2 className="text-xl font-bold text-slate-900 text-center mb-1">{selectedChat.name}</h2>
+          <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium">
+            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+            <span>Active now</span>
+          </div>
         </div>
 
-        <div className="pt-4 px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Privacy & Support</div>
-        <div onClick={() => handleAction("Mute")} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group">
-          <span className="text-sm font-semibold text-slate-600 group-hover:text-slate-900">Mute Notifications</span>
-          <Volume2 size={16} className="text-slate-300" />
+        {/* Action Grid */}
+        <div className="grid grid-cols-3 gap-2 px-6 mb-8">
+          <button onClick={() => handleAction("View Profile")} className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+            <div className="h-9 w-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-700">
+              <User size={18} />
+            </div>
+            <span className="text-[10px] font-bold text-slate-600">Profile</span>
+          </button>
+          <button onClick={() => handleAction("Mute")} className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+            <div className="h-9 w-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-700">
+              <Volume2 size={18} />
+            </div>
+            <span className="text-[10px] font-bold text-slate-600">Mute</span>
+          </button>
+          <button onClick={() => handleAction("Search")} className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+            <div className="h-9 w-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-700">
+              <Search size={18} />
+            </div>
+            <span className="text-[10px] font-bold text-slate-600">Search</span>
+          </button>
         </div>
-        <div onClick={() => handleAction("Report")} className="flex items-center justify-between p-3 hover:bg-red-50 rounded-xl cursor-pointer transition-colors group">
-          <span className="text-sm font-semibold text-red-500">Report Group</span>
-          <Flag size={16} className="text-red-300" />
-        </div>
-        <div onClick={() => handleAction("Leave")} className="flex items-center justify-between p-3 hover:bg-red-50 rounded-xl cursor-pointer transition-colors group">
-          <span className="text-sm font-semibold text-red-600">Leave Group</span>
-          <LogOut size={16} className="text-red-400" />
+
+        {/* Menu Sections */}
+        <div className="px-3 pb-6 border-t pt-4">
+          <div className="space-y-1">
+            <div className="px-3 py-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Chat info</h3>
+            </div>
+            <button onClick={() => handleAction("Disappearing Messages")} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-50 group">
+              <div className="flex items-center gap-3">
+                <div className="text-slate-500 group-hover:text-slate-900"><Plus size={18} /></div>
+                <span className="text-sm font-semibold text-slate-700">Disappearing messages</span>
+              </div>
+              <ChevronLeft size={16} className="text-slate-300 rotate-180" />
+            </button>
+          </div>
+
+          <div className="space-y-1 mt-6">
+            <div className="px-3 py-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Media & files</h3>
+            </div>
+            <button onClick={() => handleAction("Shared Media")} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-50 group">
+              <div className="flex items-center gap-3">
+                <div className="text-slate-500 group-hover:text-slate-900"><ImageIcon size={18} /></div>
+                <span className="text-sm font-semibold text-slate-700">Shared media</span>
+              </div>
+              <ChevronLeft size={16} className="text-slate-300 rotate-180" />
+            </button>
+          </div>
+
+          <div className="space-y-1 mt-6">
+            <div className="px-3 py-2">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Privacy & support</h3>
+            </div>
+            <button onClick={() => handleAction("Report")} className="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-red-50 group">
+              <div className="flex items-center gap-3">
+                <div className="text-orange-500"><ShieldAlert size={18} /></div>
+                <span className="text-sm font-semibold text-slate-700">Report</span>
+              </div>
+            </button>
+            <button onClick={() => handleAction("Leave")} className="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-red-50 group">
+              <div className="flex items-center gap-3">
+                <div className="text-red-500"><LogOut size={18} /></div>
+                <span className="text-sm font-semibold text-red-600">Leave group</span>
+              </div>
+            </button>
+            <button onClick={() => handleAction("Delete")} className="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-red-50 group">
+              <div className="flex items-center gap-3">
+                <div className="text-red-600"><Trash2 size={18} /></div>
+                <span className="text-sm font-semibold text-red-600 font-bold">Delete Chat</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>

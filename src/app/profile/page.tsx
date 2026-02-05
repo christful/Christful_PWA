@@ -205,193 +205,252 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFDFF] pb-20 md:pb-0">
+    <div className="min-h-screen bg-[#F0F2F5] pb-20 md:pb-0">
       <Header />
 
-      <div className="pt-20 pb-10">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Profile Header Card */}
-          <Card className="mb-6 overflow-hidden">
-            <div className="h-32 bg-gradient-to-r from-primary/20 to-secondary/20"></div>
+      <main className="pt-14">
+        {/* Profile Header Section - Facebook Style */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-[1095px] mx-auto">
+            {/* Cover Photo */}
+            <div className="relative h-[200px] md:h-[350px] w-full bg-gradient-to-r from-slate-200 to-slate-300 rounded-b-xl overflow-hidden group">
+              {/* Optional: Add cover photo image here if available */}
+              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              {isOwnProfile && (
+                <button className="absolute bottom-4 right-4 bg-white hover:bg-slate-50 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 transition-all">
+                  <Upload size={18} />
+                  <span>Add cover photo</span>
+                </button>
+              )}
+            </div>
 
-            <CardContent className="pt-0">
-              <div className="flex flex-col md:flex-row gap-8 md:-mt-16">
-                {/* Avatar with Upload Button */}
-                <div className="flex justify-center md:justify-start">
-                  <div className="relative">
-                    <Avatar className="h-40 w-40 border-4 border-white shadow-lg">
-                      {user?.avatarUrl ? (
-                        <AvatarImage src={user.avatarUrl} alt={user.firstName} />
-                      ) : null}
-                      <AvatarFallback className="text-4xl bg-gradient-to-br from-primary to-primary/70 text-white">
-                        {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {isOwnProfile && (
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="absolute bottom-0 right-0 bg-primary text-white p-3 rounded-full hover:bg-primary/90 disabled:opacity-50 shadow-lg transition-all hover:scale-110"
-                        title="Upload avatar"
-                      >
-                        <Upload className="h-5 w-5" />
-                      </button>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      disabled={uploading}
-                      className="hidden"
-                    />
+            {/* Profile Info Area */}
+            <div className="px-4 pb-4">
+              <div className="flex flex-col md:flex-row items-center md:items-end gap-4 -mt-12 md:-mt-8 mb-4">
+                {/* Avatar */}
+                <div className="relative">
+                  <Avatar className="h-40 w-40 border-4 border-white shadow-xl ring-1 ring-black/5">
+                    {user?.avatarUrl ? (
+                      <AvatarImage src={user.avatarUrl} alt={user.firstName} />
+                    ) : null}
+                    <AvatarFallback className="text-5xl font-bold bg-[#800517] text-white">
+                      {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isOwnProfile && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-2 right-2 bg-slate-100 p-2 rounded-full hover:bg-slate-200 shadow-md ring-2 ring-white transition-transform hover:scale-110"
+                    >
+                      <Upload size={20} className="text-slate-700" />
+                    </button>
+                  )}
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploading} className="hidden" />
+                </div>
+
+                {/* Name and Stats */}
+                <div className="flex-1 text-center md:text-left pb-2">
+                  <h1 className="text-3xl font-bold text-slate-900 mb-1">
+                    {user?.firstName} {user?.lastName}
+                  </h1>
+                  <p className="text-slate-500 font-semibold mb-2">{user?.followers?.length || 0} followers • {user?.following?.length || 0} following</p>
+
+                  {/* Follower Avatars (Dummy) */}
+                  <div className="flex justify-center md:justify-start -space-x-2">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Avatar key={i} className="h-8 w-8 border-2 border-white">
+                        <AvatarFallback className="text-[10px] bg-slate-200 text-slate-600">F</AvatarFallback>
+                      </Avatar>
+                    ))}
                   </div>
                 </div>
 
-                {/* User Info */}
-                {isEditMode ? (
-                  // Edit Mode
-                  <div className="flex-1">
-                    <h1 className="text-3xl md:text-4xl font-bold mb-6">
-                      {user?.firstName} {user?.lastName}
-                    </h1>
-                    
-                    <div className="mb-6">
-                      <label className="text-sm font-medium mb-2 block">Bio</label>
-                      <Textarea
-                        value={editData.bio}
-                        onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
-                        placeholder="Tell us about yourself..."
-                        className="min-h-24 resize-none"
-                        disabled={uploading}
-                      />
-                      <p className="text-xs text-muted-foreground mt-2">{editData.bio.length}/500 characters</p>
-                    </div>
+                {/* Actions */}
+                <div className="flex gap-2 pb-2">
+                  {isOwnProfile ? (
+                    <>
+                      <Button className="bg-[#800517] hover:bg-[#A0061D] text-white font-bold px-6 shadow-sm">
+                        <Plus className="h-4 w-4 mr-2" /> Add to Story
+                      </Button>
+                      <Button variant="secondary" onClick={() => setIsEditMode(true)} className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
+                        <Edit2 className="h-4 w-4 mr-2" /> Edit Profile
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button className="bg-primary text-white font-bold shadow-sm">
+                        <UserPlus className="h-4 w-4 mr-2" /> Follow
+                      </Button>
+                      <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
+                        <Mail className="h-4 w-4 mr-2" /> Message
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
 
+              {/* Profile Divider */}
+              <div className="border-t"></div>
+
+              {/* Profile Tabs (Dummy UI) */}
+              <div className="flex gap-1 overflow-x-auto no-scrollbar py-1">
+                {['Posts', 'About', 'Friends', 'Photos', 'Videos', 'Reels'].map((tab, i) => (
+                  <button key={tab} className={`px-4 py-3 text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${i === 0 ? "text-[#800517] border-b-4 border-[#800517] rounded-none" : "text-slate-500 hover:bg-slate-100"}`}>
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="max-w-[1095px] mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-[40%_60%] gap-4">
+
+          {/* Left Column: Intro & Info */}
+          <div className="space-y-4">
+            <Card className="shadow-sm border-none bg-white p-4">
+              <h3 className="text-xl font-bold text-slate-900 mb-4">Intro</h3>
+              <div className="space-y-4">
+                {isEditMode ? (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={editData.bio}
+                      onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                      className="bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-[#800517] resize-none min-h-[100px] text-center"
+                      placeholder="Describe who you are..."
+                    />
                     <div className="flex gap-2">
-                      <Button
-                        onClick={handleSaveBio}
-                        disabled={uploading}
-                        className="flex-1"
-                      >
-                        Save Changes
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsEditMode(false)}
-                        disabled={uploading}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
+                      <Button onClick={handleSaveBio} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold" disabled={uploading}>Save</Button>
+                      <Button onClick={() => setIsEditMode(false)} variant="ghost" className="flex-1 font-bold" disabled={uploading}>Cancel</Button>
                     </div>
                   </div>
                 ) : (
-                  // View Mode
-                  <div className="flex-1">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
-                      <div>
-                        <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                          {user?.firstName} {user?.lastName}
-                        </h1>
-                        {user?.bio && <p className="text-muted-foreground text-lg leading-relaxed">{user.bio}</p>}
-                      </div>
-                      {isOwnProfile && (
-                        <button
-                          onClick={() => setIsEditMode(true)}
-                          className="self-start md:self-start text-primary hover:bg-gray-100 p-2 rounded-full transition-colors"
-                          title="Edit profile"
-                        >
-                          <Edit2 className="h-5 w-5" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 mb-8 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        {user?.email}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        Member
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-primary">
-                          {userPosts.length}
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">Posts</div>
-                      </div>
-                      <div className="text-center border-l border-r border-gray-200">
-                        <div className="text-3xl font-bold text-primary">
-                          {user?.followers?.length || 0}
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">Followers</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-primary">
-                          {user?.following?.length || 0}
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">Following</div>
-                      </div>
-                    </div>
-                  </div>
+                  <>
+                    <p className="text-center text-slate-900 font-medium">{user.bio || "No bio yet."}</p>
+                    {isOwnProfile && (
+                      <Button onClick={() => setIsEditMode(true)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold border-none">
+                        Edit bio
+                      </Button>
+                    )}
+                  </>
                 )}
 
-                {!isOwnProfile && (
-                  <Button className="md:mb-0">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Follow
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center gap-3 text-slate-800">
+                    <Mail className="h-5 w-5 text-slate-400" />
+                    <span className="text-sm">Email: <span className="font-bold">{user.email}</span></span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-800">
+                    <Calendar className="h-5 w-5 text-slate-400" />
+                    <span className="text-sm">Joined <span className="font-bold">January 2024</span></span>
+                  </div>
+                </div>
+
+                {isOwnProfile && (
+                  <Button className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold border-none">
+                    Edit details
                   </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </Card>
 
-          {/* User Posts */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold px-4 md:px-0">Posts</h2>
-            {userPosts.length > 0 ? (
-              userPosts.map((post) => {
-                const getPostType = (post: Post): 'image' | 'video' | 'audio' | 'text' => {
-                  if (post.videoUrl) return 'video';
-                  if (post.audioUrl) return 'audio';
-                  if (post.imageUrl) return 'image';
-                  return 'text';
-                };
-                const userId = localStorage.getItem("userId");
-                const userHasLiked = post.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
-                
-                return (
-                  <PostCard
-                    key={post.id}
-                    postId={post.id}
-                    postType={getPostType(post)}
-                    authorId={post.author.id}
-                    authorName={`${post.author.firstName} ${post.author.lastName}`}
-                    authorAvatar={post.author.avatarUrl || ''}
-                    date={post.createdAt ? new Date(post.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
-                    textContent={post.content}
-                    imageUrl={post.imageUrl}
-                    videoUrl={post.videoUrl}
-                    audioUrl={post.audioUrl}
-                    likesCount={post.likes?.length || 0}
-                    commentsCount={post.comments?.length || 0}
-                    isLiked={userHasLiked}
-                  />
-                );
-              })
-            ) : (
-              <Card className="text-center py-12">
-                <p className="text-muted-foreground">No posts yet</p>
+            <Card className="shadow-sm border-none bg-white p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-slate-900">Photos</h3>
+                <button className="text-[#800517] hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium">See all photos</button>
+              </div>
+              <div className="grid grid-cols-3 gap-2 overflow-hidden rounded-xl">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="aspect-square bg-slate-100 animate-pulse rounded-md"></div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column: Posts */}
+          <div className="space-y-4">
+            {/* Create Post Card (Dummy) */}
+            {isOwnProfile && (
+              <Card className="shadow-sm border-none bg-white p-4">
+                <div className="flex gap-3 mb-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.avatarUrl} />
+                    <AvatarFallback>{user.firstName[0]}</AvatarFallback>
+                  </Avatar>
+                  <button className="flex-1 bg-slate-100 hover:bg-slate-200 rounded-full text-left px-4 text-slate-500 text-sm">
+                    What's on your mind, {user.firstName}?
+                  </button>
+                </div>
+                <div className="flex border-t pt-2">
+                  <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-50 rounded-lg text-slate-600 font-bold text-sm">
+                    <Upload size={20} className="text-red-500" /> Live Video
+                  </button>
+                  <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-50 rounded-lg text-slate-600 font-bold text-sm">
+                    <Upload size={20} className="text-green-500" /> Photo/video
+                  </button>
+                  <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-50 rounded-lg text-slate-600 font-bold text-sm">
+                    <Upload size={20} className="text-yellow-500" /> Life Event
+                  </button>
+                </div>
               </Card>
             )}
+
+            {/* Posts Header */}
+            <div className="flex justify-between items-center px-1">
+              <h3 className="text-xl font-bold text-slate-900">Posts</h3>
+              <div className="flex gap-2">
+                <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
+                  Filters
+                </Button>
+                <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
+                  Manage posts
+                </Button>
+              </div>
+            </div>
+
+            {/* Actual Posts */}
+            <div className="space-y-4">
+              {userPosts.length > 0 ? (
+                userPosts.map((post) => {
+                  const getPostType = (post: Post): 'image' | 'video' | 'audio' | 'text' => {
+                    if (post.videoUrl) return 'video';
+                    if (post.audioUrl) return 'audio';
+                    if (post.imageUrl) return 'image';
+                    return 'text';
+                  };
+                  const userId = localStorage.getItem("userId");
+                  const userHasLiked = post.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
+
+                  return (
+                    <PostCard
+                      key={post.id}
+                      postId={post.id}
+                      postType={getPostType(post)}
+                      authorId={post.author.id}
+                      authorName={`${post.author.firstName} ${post.author.lastName}`}
+                      authorAvatar={post.author.avatarUrl || ''}
+                      date={post.createdAt ? new Date(post.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
+                      textContent={post.content}
+                      imageUrl={post.imageUrl}
+                      videoUrl={post.videoUrl}
+                      audioUrl={post.audioUrl}
+                      likesCount={post.likes?.length || 0}
+                      commentsCount={post.comments?.length || 0}
+                      isLiked={userHasLiked}
+                    />
+                  );
+                })
+              ) : (
+                <Card className="text-center py-12">
+                  <p className="text-muted-foreground">No posts yet</p>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+
+      </main>
 
       <BottomNav />
     </div>

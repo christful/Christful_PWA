@@ -61,6 +61,8 @@ export function PostCard({
   const [commentText, setCommentText] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
 
+  const [showFullText, setShowFullText] = useState(false);
+
   const renderMedia = () => {
     switch (postType) {
       case 'image':
@@ -120,7 +122,7 @@ export function PostCard({
     try {
       setIsLoading(true);
       const token = localStorage.getItem("auth_token");
-      
+
       const response = await fetch(ENDPOINTS.LIKE_POST(postId), {
         method: "POST",
         headers: {
@@ -146,7 +148,7 @@ export function PostCard({
     try {
       setIsLoading(true);
       const token = localStorage.getItem("auth_token");
-      
+
       const response = await fetch(ENDPOINTS.FOLLOW(authorId), {
         method: "POST",
         headers: {
@@ -178,7 +180,7 @@ export function PostCard({
     try {
       setLoadingComments(true);
       const token = localStorage.getItem("auth_token");
-      
+
       const response = await fetch(ENDPOINTS.COMMENTS(postId), {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -209,7 +211,7 @@ export function PostCard({
     try {
       setIsLoading(true);
       const token = localStorage.getItem("auth_token");
-      
+
       const response = await fetch(ENDPOINTS.COMMENTS(postId), {
         method: "POST",
         headers: {
@@ -277,24 +279,24 @@ export function PostCard({
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2 rounded-xl" align="end">
               <div className="space-y-1">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start gap-2 h-9 text-sm" 
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 h-9 text-sm"
                   onClick={() => toast.success("Post saved to Library!")}
                 >
                   <Bookmark className="h-4 w-4" /> Save Post
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start gap-2 h-9 text-sm text-orange-600 hover:bg-orange-50" 
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 h-9 text-sm text-orange-600 hover:bg-orange-50"
                   onClick={() => toast.info("Post reported to administrators.")}
                 >
                   <Flag className="h-4 w-4" /> Report Post
                 </Button>
                 {isOwnPost && (
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start gap-2 h-9 text-sm text-red-600 hover:bg-red-50" 
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 h-9 text-sm text-red-600 hover:bg-red-50"
                     onClick={() => toast.error("Post deletion only available from profile.")}
                   >
                     <Trash2 className="h-4 w-4" /> Delete Post
@@ -308,7 +310,19 @@ export function PostCard({
 
       <CardContent className="space-y-4">
         {textContent && (
-          <p className="text-gray-800 whitespace-pre-line">{textContent}</p>
+          <div>
+            <p className={`text-gray-800 whitespace-pre-line ${!showFullText ? "line-clamp-4" : ""}`}>
+              {textContent}
+            </p>
+            {textContent.length > 280 && (
+              <button
+                onClick={() => setShowFullText(!showFullText)}
+                className="text-primary hover:underline text-sm font-semibold mt-1"
+              >
+                {showFullText ? "Show less" : "See more"}
+              </button>
+            )}
+          </div>
         )}
 
         {hasMedia && renderMedia()}
@@ -333,9 +347,8 @@ export function PostCard({
             <button
               onClick={handleLike}
               disabled={isLoading}
-              className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 ${
-                liked ? "text-red-500" : "hover:text-primary"
-              }`}
+              className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 ${liked ? "text-red-500" : "hover:text-primary"
+                }`}
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
               <span className="font-medium">{currentLikesCount}</span>
