@@ -62,17 +62,21 @@ export function PostCard({
   const [loadingComments, setLoadingComments] = useState(false);
 
   const [showFullText, setShowFullText] = useState(false);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
   const renderMedia = () => {
     switch (postType) {
       case 'image':
         return imageUrl && (
-          <div className="relative w-full h-64 md:h-80 overflow-hidden rounded-lg">
+          <div 
+            className="relative w-full h-64 md:h-80 overflow-hidden rounded-lg cursor-zoom-in"
+            onClick={() => setIsMediaModalOpen(true)}
+          >
             <Image
               src={imageUrl}
               alt="Post image"
               fill
-              className="object-cover"
+              className="object-cover hover:scale-105 transition-transform duration-500"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           </div>
@@ -80,12 +84,19 @@ export function PostCard({
 
       case 'video':
         return videoUrl && (
-          <div className="relative w-full h-64 md:h-80 overflow-hidden rounded-lg">
+          <div className="relative w-full h-64 md:h-80 overflow-hidden rounded-lg group">
             <video
               src={videoUrl}
               className="w-full h-full object-cover"
               controls
             />
+            <button 
+              onClick={() => setIsMediaModalOpen(true)}
+              className="absolute top-2 right-2 bg-black/50 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Full screen view"
+            >
+              <Eye size={18} />
+            </button>
           </div>
         );
 
@@ -408,6 +419,50 @@ export function PostCard({
           )}
         </div>
       </CardFooter>
+
+      {/* Media Modal (Review Post) */}
+      {isMediaModalOpen && (
+        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <button
+            onClick={() => setIsMediaModalOpen(false)}
+            className="absolute top-6 right-6 text-white hover:text-gray-300 z-[110] bg-black/20 p-2 rounded-full transition-colors"
+          >
+            <X size={32} />
+          </button>
+
+          <div
+            className="relative max-w-5xl w-full h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {postType === 'image' && imageUrl && (
+              <div className="relative w-full h-full">
+                <Image
+                  src={imageUrl}
+                  alt="Post media full view"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            )}
+
+            {postType === 'video' && videoUrl && (
+              <video
+                src={videoUrl}
+                className="max-h-full max-w-full rounded-lg shadow-2xl"
+                controls
+                autoPlay
+              />
+            )}
+          </div>
+
+          {/* Backdrop click to close */}
+          <div
+            className="absolute inset-0 -z-10"
+            onClick={() => setIsMediaModalOpen(false)}
+          />
+        </div>
+      )}
     </Card>
   );
 }

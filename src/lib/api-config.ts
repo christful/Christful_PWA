@@ -8,6 +8,7 @@ export const ENDPOINTS = {
     RESET_PASSWORD: `${API_BASE_URL}/reset-password`,
     FORGOT_PASSWORD: `${API_BASE_URL}/forgot-password`,
     ME: `${API_BASE_URL}/auth/me`,
+    PROFILE: `${API_BASE_URL}/profile`,
 
     // Users
     USERS: `${API_BASE_URL}/users`,
@@ -37,12 +38,15 @@ export const ENDPOINTS = {
     COMMUNITY_GROUPS: (communityId: string) => `${API_BASE_URL}/communities/${communityId}/groups`,
     JOIN_COMMUNITY: (id: string) => `${API_BASE_URL}/communities/${id}/join`,
     LEAVE_COMMUNITY: (communityId: string) => `${API_BASE_URL}/communities/${communityId}/leave`,
+    COMMUNITY_SEARCH: `${API_BASE_URL}/communities/search`,
+    COMMUNITY_JOIN_REQUESTS: (communityId: string) => `${API_BASE_URL}/communities/${communityId}/join-requests`,
 
     // Groups
     GROUPS: `${API_BASE_URL}/groups`,
     GROUP_DETAIL: (groupId: string) => `${API_BASE_URL}/groups/${groupId}`,
     GROUP_MESSAGES: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/messages`,
     GENERATE_INVITE: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/invite-link`,
+    JOIN_GROUP_LINK: `${API_BASE_URL}/groups/join-via-link`,
     ADMIN_ONLY_MESSAGING: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/settings/admin-only-messaging`,
 
     // Messaging
