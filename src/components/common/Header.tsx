@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, House, Users, Plus, User, LogOut, Clapperboard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,16 +19,7 @@ export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
 
-  useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      setIsLoggedIn(true);
-      fetchUserData(token);
-      fetchNotificationCount(token);
-    }
-  }, []);
-
-  const fetchNotificationCount = async (token: string) => {
+  const fetchNotificationCount = useCallback(async (token: string) => {
     try {
       const response = await fetch(ENDPOINTS.NOTIFICATIONS, {
         headers: {
@@ -44,9 +35,9 @@ export function Header() {
     } catch (error) {
       console.error("Failed to fetch notification count:", error);
     }
-  };
+  }, []);
 
-  const fetchUserData = async (token: string) => {
+  const fetchUserData = useCallback(async (token: string) => {
     try {
       const response = await fetch(ENDPOINTS.ME, {
         headers: {
@@ -66,7 +57,16 @@ export function Header() {
     } catch (error) {
       console.error("Failed to fetch user data:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      setIsLoggedIn(true);
+      fetchUserData(token);
+      fetchNotificationCount(token);
+    }
+  }, [fetchUserData, fetchNotificationCount]);
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
