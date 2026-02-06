@@ -87,7 +87,7 @@ export default function CommunitiesPage() {
 	const handleJoinCommunity = async (communityId: string) => {
 		try {
 			const token = localStorage.getItem("auth_token");
-			const response = await fetch(ENDPOINTS.JOIN_COMMUNITY(communityId), {
+			const response = await fetch(ENDPOINTS.COMMUNITY_JOIN(communityId), {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,

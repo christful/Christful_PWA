@@ -53,7 +53,7 @@ export default function GroupDetailPage() {
       try {
         const token = localStorage.getItem("auth_token");
         if (token) {
-          const response = await fetch(ENDPOINTS.ME, {
+          const response = await fetch(ENDPOINTS.AUTH_ME, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (response.ok) {

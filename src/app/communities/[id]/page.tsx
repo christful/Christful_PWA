@@ -22,6 +22,7 @@ interface Community {
   description: string;
   avatarUrl?: string;
   coverUrl?: string;
+  isPrivate: boolean;
   creator: {
     id: string;
     firstName: string;
@@ -47,7 +48,7 @@ export default function CommunityDetailPage() {
   const { data: communityData, isLoading: communityLoading, mutate: mutateCommunity } = useApi<Community>(
     communityId ? ENDPOINTS.COMMUNITY_DETAIL(communityId) : null
   );
-  const { data: meData } = useApi<any>(ENDPOINTS.ME);
+  const { data: meData } = useApi<any>(ENDPOINTS.AUTH_ME);
 
   useEffect(() => {
     if (communityData) {
@@ -70,17 +71,19 @@ export default function CommunityDetailPage() {
   const handleJoinCommunity = async (id: string) => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.JOIN_COMMUNITY(id), {
+      const endpoint = community?.isPrivate ? ENDPOINTS.COMMUNITY_REQUEST_JOIN(id) : ENDPOINTS.COMMUNITY_JOIN(id);
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
-        toast.success("Joined community successfully!");
+        toast.success(community?.isPrivate ? "Join request sent!" : "Joined community successfully!");
         fetchCommunityDetail();
       }
     } catch (error) {
-      toast.error("Failed to join");
+      toast.error("An error occurred");
     }
   };
 
@@ -187,7 +190,7 @@ export default function CommunityDetailPage() {
             <div className="flex gap-2 mb-2">
               {!isMember ? (
                 <Button className="bg-[#800517] hover:bg-[#a0061d] text-white px-8 h-10 rounded-lg" onClick={() => handleJoinCommunity(community!.id)}>
-                  Join Group
+                  {community?.isPrivate ? "Request to Join" : "Join Group"}
                 </Button>
               ) : (
                 <Button variant="secondary" className="px-8 h-10 rounded-lg">
@@ -201,7 +204,7 @@ export default function CommunityDetailPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{community?.name}</h1>
           <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
             <Globe size={14} />
-            <span>Public Group • {community?.memberships?.length || 0} members</span>
+            <span>{community?.isPrivate ? "Private Group" : "Public Group"} • {community?.memberships?.length || 0} members</span>
           </div>
 
           <div className="flex gap-4 border-t pt-2">
@@ -253,8 +256,13 @@ export default function CommunityDetailPage() {
           <div className="flex items-start gap-3">
             <Globe className="text-slate-400 mt-1" size={18} />
             <div>
-              <p className="text-sm font-bold">Public</p>
-              <p className="text-xs text-slate-500">Anyone can see who&apos;s in the group and what they post.</p>
+              <p className="text-sm font-bold">{community?.isPrivate ? "Private" : "Public"}</p>
+              <p className="text-xs text-slate-500">
+                {community?.isPrivate
+                  ? "Only members can see who's in the group and what they post."
+                  : "Anyone can see who's in the group and what they post."
+                }
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3">

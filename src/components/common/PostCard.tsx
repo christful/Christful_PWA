@@ -61,6 +61,7 @@ export function PostCard({
   const [commentText, setCommentText] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
 
+  const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null);
   const [showFullText, setShowFullText] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
@@ -69,50 +70,50 @@ export function PostCard({
       case 'image':
         return imageUrl && (
           <div
-            className="relative w-full h-64 md:h-80 overflow-hidden cursor-zoom-in -mx-4 md:mx-0 md:rounded-lg"
+            className="relative w-full h-80 md:h-[450px] overflow-hidden cursor-zoom-in group"
             onClick={() => setIsMediaModalOpen(true)}
           >
             <Image
               src={imageUrl}
               alt="Post image"
               fill
-              className="object-cover hover:scale-105 transition-transform duration-500"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-700"
+              sizes="100vw"
             />
           </div>
         );
 
       case 'video':
         return videoUrl && (
-          <div className="relative w-full h-64 md:h-80 overflow-hidden group -mx-4 md:mx-0 md:rounded-lg">
+          <div className="relative w-full h-80 md:h-[450px] overflow-hidden group bg-black flex items-center justify-center">
             <video
               src={videoUrl}
-              className="w-full h-full object-cover"
+              className="max-w-full max-h-full"
               controls
             />
             <button
               onClick={() => setIsMediaModalOpen(true)}
-              className="absolute top-2 right-2 bg-black/50 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
               title="Full screen view"
             >
-              <Eye size={18} />
+              <Eye size={20} />
             </button>
           </div>
         );
 
       case 'audio':
         return audioUrl && (
-          <div className="flex items-center gap-4 p-4 bg-gray-50 -mx-4 md:mx-0 md:rounded-lg">
+          <div className="flex items-center gap-4 p-6 bg-slate-50 border-y">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white hover:bg-primary/90"
+              className="flex items-center justify-center w-14 h-14 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md transition-all active:scale-95"
             >
-              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+              {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
             </button>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <Volume2 size={16} className="text-gray-500" />
-                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <Volume2 size={18} className="text-gray-500" />
+                <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-300"
                     style={{ width: `${audioProgress}%` }}
@@ -223,7 +224,7 @@ export function PostCard({
       setIsLoading(true);
       const token = localStorage.getItem("auth_token");
 
-      const response = await fetch(ENDPOINTS.COMMENTS(postId), {
+      const response = await fetch(ENDPOINTS.POST_COMMENTS(postId), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -231,6 +232,7 @@ export function PostCard({
         },
         body: JSON.stringify({
           content: commentText,
+          parentCommentId: replyingTo?.id || undefined,
         }),
       });
 
@@ -238,7 +240,8 @@ export function PostCard({
         const newComment = await response.json();
         setComments([...comments, newComment]);
         setCommentText("");
-        toast.success("Comment added");
+        setReplyingTo(null);
+        toast.success(replyingTo ? "Reply added" : "Comment added");
       } else {
         toast.error("Failed to add comment");
       }
@@ -319,16 +322,16 @@ export function PostCard({
         </CardAction>
       </CardHeader>
 
-      <CardContent className="space-y-4 px-4 md:px-6">
+      <CardContent className="space-y-4 px-0 pb-0">
         {textContent && (
-          <div>
-            <p className={`text-gray-800 whitespace-pre-line ${!showFullText ? "line-clamp-4" : ""}`}>
+          <div className="px-4 md:px-6 pt-2">
+            <p className={`text-[15px] md:text-base text-gray-800 whitespace-pre-line leading-relaxed ${!showFullText ? "line-clamp-4" : ""}`}>
               {textContent}
             </p>
             {textContent.length > 280 && (
               <button
                 onClick={() => setShowFullText(!showFullText)}
-                className="text-primary hover:underline text-sm font-semibold mt-1"
+                className="text-primary hover:underline text-sm font-semibold mt-2"
               >
                 {showFullText ? "Show less" : "See more"}
               </button>
@@ -336,12 +339,16 @@ export function PostCard({
           </div>
         )}
 
-        <div className="w-full">
-          {hasMedia && renderMedia()}
-        </div>
+        {hasMedia && (
+          <div className="w-full mt-2">
+            {renderMedia()}
+          </div>
+        )}
 
         {!textContent && postType === 'text' && (
-          <p className="text-gray-500 italic">No content</p>
+          <div className="px-4 md:px-6 py-4">
+            <p className="text-gray-500 italic">No content</p>
+          </div>
         )}
       </CardContent>
 
@@ -380,26 +387,41 @@ export function PostCard({
           {showComments && (
             <div className="border-t pt-4 space-y-4">
               {/* Comment Input */}
-              <div className="flex gap-2 items-start">
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={localStorage.getItem("userAvatar") || ""} />
-                  <AvatarFallback>{(localStorage.getItem("userName") || "U").charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 flex gap-2">
-                  <Input
-                    placeholder="Write a comment..."
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    disabled={isLoading}
-                    className="flex-1 bg-slate-100 border-none rounded-2xl py-2 px-4 focus-visible:ring-0"
-                  />
-                  <button
-                    onClick={handleAddComment}
-                    disabled={isLoading || !commentText.trim()}
-                    className="p-2 text-primary hover:bg-primary/10 rounded-full disabled:opacity-50 transition-colors"
-                  >
-                    <Share className="h-5 w-5 rotate-90" />
-                  </button>
+              <div className="flex flex-col gap-2">
+                {replyingTo && (
+                  <div className="flex items-center justify-between bg-primary/5 px-3 py-1 rounded-lg border border-primary/10 ml-10">
+                    <span className="text-[10px] text-primary font-medium italic">
+                      Replying to <span className="font-bold">{replyingTo.name}</span>
+                    </span>
+                    <button
+                      onClick={() => setReplyingTo(null)}
+                      className="text-primary hover:text-red-500"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-2 items-start">
+                  <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={localStorage.getItem("userAvatar") || ""} />
+                    <AvatarFallback>{(localStorage.getItem("userName") || "U").charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 flex gap-2">
+                    <Input
+                      placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      disabled={isLoading}
+                      className="flex-1 bg-slate-100 border-none rounded-2xl py-2 px-4 focus-visible:ring-0 h-9 text-sm"
+                    />
+                    <button
+                      onClick={handleAddComment}
+                      disabled={isLoading || !commentText.trim()}
+                      className="p-2 text-primary hover:bg-primary/10 rounded-full disabled:opacity-50 transition-colors"
+                    >
+                      <Share className="h-5 w-5 rotate-90" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -419,7 +441,12 @@ export function PostCard({
                         </div>
                         <div className="flex items-center gap-4 text-xs font-bold text-gray-500 px-2">
                           <button className="hover:underline">Like</button>
-                          <button className="hover:underline">Reply</button>
+                          <button
+                            className="hover:underline"
+                            onClick={() => setReplyingTo({ id: comment.id, name: comment.authorName })}
+                          >
+                            Reply
+                          </button>
                           <span className="font-normal text-[10px] text-gray-400">
                             {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : "Just now"}
                           </span>

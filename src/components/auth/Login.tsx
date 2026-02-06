@@ -75,7 +75,7 @@ function LoginContent() {
     onSuccess: async (tokenResponse) => {
       try {
         console.log("Google Token Response:", tokenResponse);
-        const res = await axios.post("https://christful-backend.vercel.app/google-auth", {
+        const res = await axios.post(ENDPOINTS.GOOGLE_AUTH, {
           access_token: tokenResponse.access_token,
         });
         if (res.data?.token) {
