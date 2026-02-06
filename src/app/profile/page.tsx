@@ -103,7 +103,7 @@ export default function ProfilePage() {
       formData.append("avatar", file);
 
       // Try uploading with PATCH to PROFILE endpoint
-      const response = await fetch(ENDPOINTS.PROFILE, {
+      const response = await fetch(ENDPOINTS.ME, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -136,7 +136,7 @@ export default function ProfilePage() {
       setUploading(true);
       const token = localStorage.getItem("auth_token");
 
-      const response = await fetch(ENDPOINTS.PROFILE, {
+      const response = await fetch(ENDPOINTS.ME, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
