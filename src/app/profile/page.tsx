@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
-import { Edit2, X, Upload, Plus } from "lucide-react";
+import { Edit2, X, Upload, Plus, UserPlus, Mail, calender } from "lucide-react";
 import { PostCard } from "@/components/common/PostCard";
 import { useApi } from "@/hooks/use-api";
 
