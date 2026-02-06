@@ -6,13 +6,11 @@ import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
-import { Edit2, X, Upload, Plus, UserPlus, Mail, Calender } from "lucide-react";
+import { Edit2, Upload, Plus, UserPlus, Mail, Calendar } from "lucide-react";
 import { PostCard } from "@/components/common/PostCard";
 import { useApi } from "@/hooks/use-api";
 
