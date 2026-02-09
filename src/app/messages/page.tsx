@@ -25,6 +25,8 @@ interface GroupChat {
   lastMessage?: string;
   lastMessageTime?: string;
   members: any[];
+  communityId?: string;
+  communityName?: string;
 }
 
 const EMOJIS = ["🙏", "🙌", "✨", "❤️", "😊", "🔥", "🤝", "📖", "⛪", "🕊️", "😇", "💡", "💪", "🌈", "🎵", "✍️"];
@@ -55,18 +57,60 @@ export default function MessagesPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch Group Chats with SWR for caching and "instant" feel
-  const { data: chatsData, isLoading: chatsLoading, mutate: mutateGroups } = useApi<{ groups: GroupChat[] }>(
+  // Fetch Standalone Groups
+  const { data: groupsData, isLoading: groupsLoading, mutate: mutateGroups } = useApi<{ groups: GroupChat[] }>(
     ENDPOINTS.GROUPS,
-    { refreshInterval: 30000 } // Refresh list every 30s
+    { refreshInterval: 30000 }
   );
 
-  const groupChats = chatsData?.groups || [];
+  // Fetch Communities to get their groups
+  const { data: communitiesData, isLoading: communitiesLoading } = useApi<{ communities: any[] }>(
+    ENDPOINTS.COMMUNITIES,
+    { refreshInterval: 60000 }
+  );
+
+  const chatsLoading = groupsLoading || communitiesLoading;
+
+  const [allChats, setAllChats] = useState<GroupChat[]>([]);
+
+  useEffect(() => {
+    const standaloneGroups = groupsData?.groups || [];
+    const communityGroups: GroupChat[] = [];
+
+    if (communitiesData?.communities) {
+      communitiesData.communities.forEach((community: any) => {
+        if (community.groups && Array.isArray(community.groups)) {
+          community.groups.forEach((group: any) => {
+            communityGroups.push({
+              ...group,
+              communityId: community.id,
+              communityName: community.name
+            });
+          });
+        }
+      });
+    }
+
+    // Combine and remove duplicates by ID
+    const combined = [...standaloneGroups, ...communityGroups];
+    const unique = combined.reduce((acc: GroupChat[], current) => {
+      const x = acc.find(item => item.id === current.id);
+      if (!x) {
+        return acc.concat([current]);
+      } else {
+        return acc;
+      }
+    }, []);
+
+    setAllChats(unique);
+  }, [groupsData, communitiesData]);
+
+  const groupChats = allChats;
 
   // Fetch Messages with SWR
   const { data: messagesData, mutate: mutateMessages } = useApi<{ messages: any[] }>(
     selectedChat ? ENDPOINTS.GROUP_MESSAGES(selectedChat.id) : null,
-    { refreshInterval: 2000 } // Poll for new messages every 2s for "live" feel
+    { refreshInterval: 2000 }
   );
 
   const messages = messagesData?.messages || [];
@@ -252,7 +296,6 @@ export default function MessagesPage() {
           <div className="hidden lg:block h-full">
             <ProfileView
               selectedChat={selectedChat}
-              handleAction={(action: string) => toast.info(`${action} clicked! (Coming soon)`)}
             />
           </div>
         }
@@ -371,13 +414,23 @@ function ChatList({ chats, selectedChat, onSelectChat, isLoading, searchQuery, s
                     {chat.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 border-2 border-white rounded-full"></div>
+                {chat.communityId && (
+                  <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-[#800517] border-2 border-white rounded-lg flex items-center justify-center shadow-sm" title={`Community: ${chat.communityName}`}>
+                    <UsersIcon size={12} className="text-white" />
+                  </div>
+                )}
+                {!chat.communityId && <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 border-2 border-white rounded-full"></div>}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline mb-0.5">
                   <h3 className="font-bold text-slate-800 truncate">{chat.name}</h3>
                   <span className="text-[10px] font-medium text-slate-400">{chat.lastMessageTime || "12:45 PM"}</span>
                 </div>
+                {chat.communityName && (
+                  <p className="text-[10px] font-bold text-[#800517] uppercase tracking-tight truncate mb-0.5">
+                    {chat.communityName}
+                  </p>
+                )}
                 <p className="text-slate-500 text-xs truncate leading-relaxed">
                   {chat.lastMessage || "Type to start sharing the word..."}
                 </p>
@@ -486,28 +539,80 @@ function ActiveChat({
                 <PopoverContent className="w-80 p-4 rounded-2xl shadow-xl" side="top" align="start">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b pb-2">
+                      <h3 className="font-bold text-slate-900">Share</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="ghost"
+                        className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = (e: any) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              // In a real app, you'd upload this. For now, we simulate.
+                              toast.info(`Uploading image: ${file.name}`);
+                              onSendMessage(`[Image: ${file.name}]`);
+                              setIsScriptureModalOpen(false);
+                            }
+                          };
+                          input.click();
+                        }}
+                      >
+                        <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                          <ImageIcon size={24} />
+                        </div>
+                        <span className="text-xs font-bold">Photo</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'video/*';
+                          input.onchange = (e: any) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              toast.info(`Uploading video: ${file.name}`);
+                              onSendMessage(`[Video: ${file.name}]`);
+                              setIsScriptureModalOpen(false);
+                            }
+                          };
+                          input.click();
+                        }}
+                      >
+                        <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
+                          <VideoIcon size={24} />
+                        </div>
+                        <span className="text-xs font-bold">Video</span>
+                      </Button>
+                    </div>
+                    <div className="space-y-3 pt-2 border-t">
                       <h3 className="font-bold text-slate-900 flex items-center gap-2">
                         <Book size={18} className="text-[#800517]" />
                         Share Scripture
                       </h3>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                      {BIBLE_VERSES.map((v, i) => (
-                        <button
-                          key={i}
-                          onClick={() => onSendScripture(v)}
-                          className="text-left p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group"
-                        >
-                          <p className="text-xs font-bold text-[#800517] mb-1">{v.ref}</p>
-                          <p className="text-xs text-slate-600 line-clamp-2 group-hover:line-clamp-none transition-all">{v.text}</p>
-                        </button>
-                      ))}
+                      <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                        {BIBLE_VERSES.map((v: any, i: number) => (
+                          <button
+                            key={i}
+                            onClick={() => onSendScripture(v)}
+                            className="text-left p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group"
+                          >
+                            <p className="text-[10px] font-bold text-[#800517] mb-0.5">{v.ref}</p>
+                            <p className="text-[10px] text-slate-600 line-clamp-1">{v.text}</p>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
 
-              <div className="flex-1 bg-slate-100 rounded-2xl flex items-center px-3 gap-2 border border-transparent focus-within:border-slate-200 transition-all">
+              <div className="flex-1 bg-slate-100 rounded-2xl flex items-center px-3 gap-2 border border-transparent focus-within:border-slate-200 transition-all relative">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-slate-400 hover:text-[#800517] h-8 w-8 hover:bg-transparent">
@@ -533,29 +638,40 @@ function ActiveChat({
                   onKeyPress={(e) => e.key === "Enter" && onSendMessage(message)}
                   autoFocus
                 />
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 rounded-full transition-colors ${isRecording ? "text-red-500 bg-red-50" : "text-slate-400 hover:text-[#800517]"}`}
-                  onClick={toggleRecording}
-                >
-                  <Mic size={20} />
-                </Button>
               </div>
 
-              {message.trim() || audioBlob ? (
-                <Button
-                  size="icon"
-                  className="rounded-full bg-[#800517] h-10 w-10 shrink-0 shadow-md hover:bg-[#A0061D]"
-                  onClick={() => onSendMessage(message, audioBlob || undefined)}
-                >
-                  <Send size={18} />
-                </Button>
+              {isRecording ? (
+                <div className="flex items-center gap-2 bg-red-100 p-2 px-3 rounded-full animate-pulse shadow-sm min-w-[120px] justify-between">
+                  <span className="text-xs font-bold text-red-600">{formatDuration(recordingDuration)}</span>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-200 rounded-full" onClick={() => { toggleRecording(); setAudioBlob(null); }}>
+                      <Trash2 size={16} />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-200 rounded-full" onClick={toggleRecording}>
+                      <Send size={16} />
+                    </Button>
+                  </div>
+                </div>
               ) : (
-                <Button variant="ghost" size="icon" className="text-[#800517] shrink-0" onClick={() => onSendMessage("❤️")}>
-                  <Heart size={20} />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full text-slate-400 hover:text-[#800517] hover:bg-red-50"
+                    onClick={toggleRecording}
+                  >
+                    <Mic size={20} />
+                  </Button>
+                  {(message.trim() || audioBlob) && (
+                    <Button
+                      size="icon"
+                      className="rounded-full bg-[#800517] h-10 w-10 shrink-0 shadow-md hover:bg-[#A0061D]"
+                      onClick={() => onSendMessage(message, audioBlob || undefined)}
+                    >
+                      <Send size={18} />
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -573,7 +689,28 @@ function ActiveChat({
   );
 }
 
-function ProfileView({ selectedChat, handleAction }: any) {
+function ProfileView({ selectedChat }: any) {
+  const handleShareLink = async () => {
+    if (!selectedChat) return;
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.GROUP_INVITE_LINK(selectedChat.id), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const inviteLink = data.inviteLink || `${window.location.origin}/groups/join/${selectedChat.id}`;
+        await navigator.clipboard.writeText(inviteLink);
+        toast.success("Invite link copied to clipboard!");
+      } else {
+        toast.error("Failed to get invite link");
+      }
+    } catch (error) {
+      console.error("Invite error:", error);
+      toast.error("An error occurred");
+    }
+  };
+
   if (!selectedChat) return (
     <div className="bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] p-6 flex flex-col items-center justify-center text-slate-300">
       <MessageSquare size={48} className="opacity-10 mb-4" />
@@ -596,10 +733,20 @@ function ProfileView({ selectedChat, handleAction }: any) {
             <span>Active now</span>
           </div>
         </div>
-        {/* Simplified Profile View */}
-        <div className="px-6 space-y-4">
-          <Button variant="outline" className="w-full text-sm font-bold" onClick={() => handleAction("View Profile")}>View Profile</Button>
-          <Button variant="outline" className="w-full text-sm font-bold text-red-600" onClick={() => handleAction("Leave Group")}>Leave Group</Button>
+        <div className="px-6 space-y-3 pb-6">
+          <Button
+            className="w-full h-11 bg-[#800517] hover:bg-[#a0061d] font-bold rounded-xl shadow-sm"
+            onClick={handleShareLink}
+          >
+            Share Group Link
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full h-11 font-bold text-red-600 border-red-50 hover:bg-red-50 hover:text-red-700 rounded-xl transition-all"
+            onClick={() => toast.info("Leave Group clicked!")}
+          >
+            Leave Group
+          </Button>
         </div>
       </div>
     </div>

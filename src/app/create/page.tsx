@@ -91,7 +91,8 @@ export default function CreatePage() {
         }
       }
 
-      const response = await fetch(ENDPOINTS.POSTS, {
+      const endpoint = activeTab === "reel" ? ENDPOINTS.REELS : ENDPOINTS.POSTS;
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

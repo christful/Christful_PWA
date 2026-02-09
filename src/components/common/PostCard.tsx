@@ -348,7 +348,28 @@ export function PostCard({
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-2 h-9 text-sm text-red-600 hover:bg-red-50"
-                    onClick={() => toast.error("Post deletion only available from profile.")}
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to delete this post?")) {
+                        try {
+                          const token = localStorage.getItem("auth_token");
+                          const response = await fetch(ENDPOINTS.POST_DETAIL(postId), {
+                            method: "DELETE",
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (response.ok) {
+                            toast.success("Post deleted successfully");
+                            // Optionally trigger a refresh or hide the card locally
+                            // Since this is a shared card, we'll inform the user it needs a refresh or just hide it
+                            window.location.reload();
+                          } else {
+                            toast.error("Failed to delete post");
+                          }
+                        } catch (error) {
+                          console.error("Delete error:", error);
+                          toast.error("An error occurred while deleting");
+                        }
+                      }
+                    }}
                   >
                     <Trash2 className="h-4 w-4" /> Delete Post
                   </Button>

@@ -32,8 +32,10 @@ export function CommunityPanel() {
 
   const fetchCommunities = async () => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(`${ENDPOINTS.COMMUNITIES}?limit=7`, {
+      // Use a larger limit to ensure we find joined communities if there are many
+      const response = await fetch(`${ENDPOINTS.COMMUNITIES}?limit=100`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -42,7 +44,14 @@ export function CommunityPanel() {
       if (response.ok) {
         const data = await response.json();
         const communities = data.communities || [];
-        setUserCommunities(communities.filter((c: Community) => c.isMember).slice(0, 5));
+        // Filter those where the user is a member or creator
+        const userId = localStorage.getItem("userId");
+        const joined = communities.filter((c: Community) =>
+          c.isMember || c.creatorId === userId
+        );
+        setUserCommunities(joined.slice(0, 10));
+      } else {
+        console.error("Failed to fetch communities:", response.status);
       }
     } catch (error) {
       console.error("Error fetching communities:", error);
@@ -105,25 +114,37 @@ export function CommunityPanel() {
         <h3 className="font-bold text-slate-800 mb-4">Your Communities</h3>
         <div className="space-y-4">
           {isLoading ? (
-            <p className="text-xs text-slate-400">Loading...</p>
+            <div className="flex justify-center py-4">
+              <div className="animate-spin h-5 w-5 border-2 border-[#800517] border-t-transparent rounded-full"></div>
+            </div>
           ) : userCommunities.length > 0 ? (
             userCommunities.map((community) => (
-              <Link key={community.id} href={`/communities/${community.id}`}>
-                <div className="flex items-center gap-3 group cursor-pointer">
-                  <Avatar className="h-10 w-10 border-2 border-transparent group-hover:border-[#800517] transition-all">
-                    <AvatarImage src={community.avatarUrl} className="object-cover" />
-                    <AvatarFallback>{community.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium text-slate-700 group-hover:text-[#800517] truncate">
-                    {community.name}
-                  </span>
+              <div key={community.id} className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={community.avatarUrl} className="object-cover" />
+                  <AvatarFallback>{community.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800 truncate">{community.name}</p>
+                  <p className="text-[10px] text-slate-500">Member</p>
                 </div>
-              </Link>
+                <Link href={`/communities/${community.id}`}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
+                  >
+                    View
+                  </Button>
+                </Link>
+              </div>
             ))
           ) : (
             <div className="text-center py-4">
               <p className="text-xs text-slate-400 italic mb-2">No joined communities</p>
-              <Button variant="ghost" className="text-xs text-[#800517] font-bold">Discover Groups</Button>
+              <Link href="/communities">
+                <Button variant="ghost" className="text-xs text-[#800517] font-bold">Discover Groups</Button>
+              </Link>
             </div>
           )}
         </div>
