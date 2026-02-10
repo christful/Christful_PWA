@@ -8,11 +8,15 @@ import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 
 interface Community {
-  creatorId: string | null;
+  creatorId?: string | null;
   id: string;
   name: string;
-  avatarUrl?: string;
-  isMember: boolean;
+  avatarUrl?: string | null;
+  isMember?: boolean;
+  // optional fields from API
+  userRole?: string | null;
+  profileImageUrl?: string | null;
+  createdBy?: string | null;
 }
 
 export function CommunityPanel() {
@@ -35,20 +39,31 @@ export function CommunityPanel() {
       setIsLoading(true);
       const token = localStorage.getItem("auth_token");
       // Use a larger limit to ensure we find joined communities if there are many
-      const response = await fetch(`${ENDPOINTS.COMMUNITIES}?limit=100`, {
+      const response = await fetch(`${ENDPOINTS.COMMUNITIES}?page=1&limit=100`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const communities = data.communities || [];
-        // Filter those where the user is a member or creator
+        const payload = await response.json();
+        // Support both API shapes: { communities: [...] } and { data: { communities: [...] } }
+        const rawCommunities = payload?.communities || payload?.data?.communities || [];
+
+        // Normalize to the local `Community` shape
+        const mapped = rawCommunities.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          avatarUrl: c.profileImageUrl || c.profileImageUrl || c.creator?.avatarUrl || null,
+          creatorId: c.createdBy || c.creator?.id || null,
+          isMember: !!(c.userRole === "member" || c.joinedAt),
+          userRole: c.userRole,
+          profileImageUrl: c.profileImageUrl,
+          createdBy: c.createdBy,
+        }));
+
         const userId = localStorage.getItem("userId");
-        const joined = communities.filter((c: Community) =>
-          c.isMember || c.creatorId === userId
-        );
+        const joined = mapped.filter((c: Community) => c.isMember || c.creatorId === userId);
         setUserCommunities(joined.slice(0, 10));
       } else {
         console.error("Failed to fetch communities:", response.status);
@@ -121,7 +136,7 @@ export function CommunityPanel() {
             userCommunities.map((community) => (
               <div key={community.id} className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={community.avatarUrl} className="object-cover" />
+                  <AvatarImage src={community.avatarUrl ?? undefined} className="object-cover" />
                   <AvatarFallback>{community.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">

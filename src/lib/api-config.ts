@@ -48,7 +48,7 @@ export const ENDPOINTS = {
     LIKE_COMMENT: (commentId: string) => `${API_BASE_URL}/comments/${commentId}/like`,
 
     // Communities
-    COMMUNITIES: `${API_BASE_URL}/communities`,
+    COMMUNITIES: `${API_BASE_URL}/communities/user`,
     COMMUNITY_SEARCH: `${API_BASE_URL}/communities/search`,
     COMMUNITY_SUGGESTED: `${API_BASE_URL}/communities/suggested`,
     COMMUNITY_DETAIL: (communityId: string) => `${API_BASE_URL}/communities/${communityId}`,

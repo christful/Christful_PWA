@@ -52,7 +52,12 @@ export default function CommunityDetailPage() {
 
   useEffect(() => {
     if (communityData) {
-      setCommunity(communityData);
+      // Map API fields to local interface (profileImageUrl -> avatarUrl)
+      const normalizedCommunity = {
+        ...communityData,
+        avatarUrl: communityData.avatarUrl || (communityData as any).profileImageUrl || null,
+      };
+      setCommunity(normalizedCommunity);
       const userId = localStorage.getItem("userId");
       const creatorCheck = userId === communityData.creator.id;
       setIsCreator(creatorCheck);
