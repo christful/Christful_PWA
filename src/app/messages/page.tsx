@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 
 interface GroupChat {
@@ -65,6 +66,9 @@ export default function MessagesPage() {
 
   const groupChats = recentMessagesData?.groups || [];
 
+  const searchParams = useSearchParams();
+  const groupIdParam = searchParams?.get("groupId");
+
   // Fetch Messages with SWR
   const { data: messagesData, mutate: mutateMessages } = useApi<{ messages: any[] }>(
     selectedChat ? ENDPOINTS.GROUP_MESSAGES(selectedChat.id) : null,
@@ -76,9 +80,26 @@ export default function MessagesPage() {
   useEffect(() => {
     // Select first chat if none selected and chats loaded
     if (groupChats.length > 0 && !selectedChat) {
+      // If a groupId is present in the URL, try to open that chat (only if joined)
+      const param = searchParams?.get("groupId");
+      if (param) {
+        const match = groupChats.find((g: any) => g.id === param);
+        const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+        const isMember = match && (match.members?.some((m: any) => m.id === userId) || match.members?.includes?.(userId));
+        if (match) {
+          if (isMember) {
+            setSelectedChat(match);
+          } else {
+            toast.error("You must join this group to view messages.");
+            setSelectedChat(groupChats[0]);
+          }
+          return;
+        }
+      }
+
       setSelectedChat(groupChats[0]);
     }
-  }, [groupChats, selectedChat]);
+  }, [groupChats, selectedChat, searchParams]);
 
   useEffect(() => {
     if (scrollRef.current) {

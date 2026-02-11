@@ -299,16 +299,20 @@ export function PostCard({
     <Card className="overflow-hidden shadow-none rounded-2xl md:rounded-xl border md:border-x">
       <CardHeader className="flex items-center justify-between px-4 md:px-6">
         <div className="flex gap-3 items-start">
-          <Avatar>
-            <AvatarImage src={authorAvatar} />
-            <AvatarFallback>
-              {authorName.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
+          <Link href={`/profile/${authorId}`} className="inline-block">
+            <Avatar>
+              <AvatarImage src={authorAvatar} />
+              <AvatarFallback>
+                {authorName.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
 
           <div>
             <CardTitle className="text-base font-semibold">
-              {authorName}
+              <Link href={`/profile/${authorId}`} className="hover:underline">
+                {authorName}
+              </Link>
               {!isOwnPost && !isFollowing && (
                 <button
                   onClick={handleFollow}
@@ -488,7 +492,13 @@ export function PostCard({
                       </Avatar>
                       <div className="flex flex-col gap-1 flex-1">
                         <div className="bg-slate-100 rounded-[18px] py-2 px-3 inline-block max-w-[95%]">
-                          <div className="font-bold text-xs hover:underline cursor-pointer">{comment.authorName}</div>
+                          { (comment.authorId || comment.author?.id || comment.userId || comment.user?.id) ? (
+                            <Link href={`/profile/${comment.authorId || comment.author?.id || comment.userId || comment.user?.id}`} className="font-bold text-xs hover:underline">
+                              {comment.authorName}
+                            </Link>
+                          ) : (
+                            <div className="font-bold text-xs">{comment.authorName}</div>
+                          )}
                           <div className="text-sm text-gray-800 break-words leading-tight">{comment.content || comment.text}</div>
                         </div>
                         <div className="flex items-center gap-4 text-xs font-bold text-gray-500 px-2">

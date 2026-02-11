@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
@@ -50,8 +51,11 @@ export default function ProfilePage() {
   const [editData, setEditData] = useState({ bio: "" });
   const [uploading, setUploading] = useState(false);
 
-  // Use API with caching
-  const { data: userData, error: userError, isLoading: userLoading, mutate: mutateUser } = useApi<UserProfile>(ENDPOINTS.PROFILE);
+  // Use API with caching — supports optional `?userId=` to view other users' profiles
+  const searchParams = useSearchParams();
+  const otherUserId = searchParams?.get("userId");
+  const profileEndpoint = otherUserId ? ENDPOINTS.USER_DETAIL(otherUserId) : ENDPOINTS.PROFILE;
+  const { data: userData, error: userError, isLoading: userLoading, mutate: mutateUser } = useApi<UserProfile>(profileEndpoint);
   const { data: postsData, error: postsError, isLoading: postsLoading } = useApi<{ posts: Post[] }>(
     userData?.id ? `${ENDPOINTS.POSTS}?userId=${userData.id}&limit=10` : null
   );

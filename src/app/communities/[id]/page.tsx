@@ -145,36 +145,6 @@ export default function CommunityDetailPage() {
           </Button>
         </div>
       </div>
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Groups in Community</h3>
-          {(isCreator || isMember) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-[10px] font-bold text-[#800517] hover:bg-red-50 flex gap-1 items-center px-2 rounded-full border border-red-100"
-              onClick={() => setIsCreateGroupModalOpen(true)}
-            >
-              <Plus size={12} /> Create
-            </Button>
-          )}
-        </div>
-        <div className="space-y-2">
-          {community?.groups?.map(group => (
-            <Link key={group.id} href={`/groups/${group.id}`}>
-              <div className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
-                <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold shrink-0 text-xs">
-                  {group.name.charAt(0)}
-                </div>
-                <span className="text-sm font-medium text-slate-700 truncate">{group.name}</span>
-              </div>
-            </Link>
-          ))}
-          {(!community?.groups || community.groups.length === 0) && (
-            <p className="text-xs text-slate-400 italic">No groups yet</p>
-          )}
-        </div>
-      </div>
     </div>
   );
 
@@ -228,33 +198,68 @@ export default function CommunityDetailPage() {
         </div>
       </div>
 
-      {/* Post Input */}
-      {isMember && (
-        <div className="bg-white p-4 md:rounded-xl shadow-sm border border-x-0 md:border-x">
-          <div className="flex gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>ME</AvatarFallback>
-            </Avatar>
-            <Input
-              placeholder={`Write something to ${community?.name}...`}
-              className="rounded-full bg-slate-100 border-none h-10"
-            />
-          </div>
+      {/* Groups in Community */}
+      <div className="bg-white p-6 md:rounded-2xl shadow-sm border border-x-0 md:border-x">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <UsersIcon className="text-[#800517]" size={20} />
+            Groups
+          </h3>
+          {(isCreator || isMember) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs font-bold text-[#800517] hover:bg-red-50 flex gap-1 items-center px-2 rounded-full border border-[#800517]"
+              onClick={() => setIsCreateGroupModalOpen(true)}
+            >
+              <Plus size={14} /> Create
+            </Button>
+          )}
         </div>
-      )}
+        <div className="space-y-4">
+          {community?.groups && community.groups.length > 0 ? (
+            community.groups.map(group => {
+              const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+              const isMemberOfGroup = !!(
+                (group?.members && Array.isArray(group.members) && group.members.some((m: any) => m?.id === userId || m === userId)) ||
+                (group?.members && group.members.includes && typeof userId === 'string' && group.members.includes(userId))
+              );
+              return (
+                <div key={group.id} className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>{group.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-800 truncate">{group.name}</p>
+                    <p className="text-[10px] text-slate-500">{group.description || "Group"}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
+                    onClick={() => {
+                      if (isMemberOfGroup) {
+                        // Open messages tab with this group
+                        router.push(`/messages?groupId=${group.id}`);
+                      } else {
+                        // Fallback to group detail page where user can join
+                        router.push(`/groups/${group.id}`);
+                      }
+                    }}
+                  >
+                    View
+                  </Button>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-xs text-slate-400 italic">No groups yet</p>
+            </div>
+          )}
+        </div>
+      </div>
 
-      {/* Feed Placeholder */}
-      <PostCard
-        postId="welcome"
-        postType="text"
-        authorId={community?.creator.id || "1"}
-        authorName={`${community?.creator.firstName} ${community?.creator.lastName}`}
-        authorAvatar={community?.creator.avatarUrl || ""}
-        date="Just now"
-        textContent={`Welcome to ${community?.name}! Let's share the word of God together.`}
-        likesCount={0}
-        commentsCount={0}
-      />
     </div>
   );
 
@@ -285,7 +290,9 @@ export default function CommunityDetailPage() {
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-slate-900">{community?.creator.firstName} {community?.creator.lastName}</p>
+                <Link href={`/profile/${community?.creator.id}`} className="text-sm font-bold text-slate-900 hover:underline">
+                  {community?.creator.firstName} {community?.creator.lastName}
+                </Link>
                 <span className="bg-[#800517]/10 text-[#800517] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Admin</span>
               </div>
               <p className="text-[10px] text-slate-500 font-medium italic">Creator</p>

@@ -87,7 +87,7 @@ export default function NotificationsPage() {
                                 >
                                     <Avatar className="h-14 w-14 flex-shrink-0">
                                         <AvatarImage src={notif.avatar} />
-                                        <AvatarFallback>{notif.title[0]}</AvatarFallback>
+                                        <AvatarFallback>{(notif.title || notif.description || 'N').charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
                                         <p className={`text-base leading-tight mb-1.5 ${notif.unread ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
