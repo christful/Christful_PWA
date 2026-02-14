@@ -150,7 +150,7 @@ export default function CommunitiesPage() {
 	const CommunityListSidebar = () => (
 		<div className="bg-white md:rounded-xl shadow-sm border h-full flex flex-col overflow-hidden border-x-0 md:border-x">
 			<div className="p-5 border-b">
-				<div className="flex justify-between items-center mb-5">
+				<div className="flex justify-between items-center mb-2">
 					<h2 className="text-2xl font-bold text-slate-900">Communities</h2>
 					<Link href="/communities/create">
 						<Button variant="ghost" size="icon" className="bg-slate-100 rounded-full hover:bg-[#800517] hover:text-white transition-all">
@@ -158,24 +158,11 @@ export default function CommunitiesPage() {
 						</Button>
 					</Link>
 				</div>
-				<div className="relative">
-					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						placeholder="Search groups"
-						className="pl-10 rounded-full bg-slate-100 border-none h-11 focus-visible:ring-[#800517]"
-						value={searchQuery}
-						onChange={(e) => handleSearch(e.target.value)}
-					/>
-				</div>
+				
 			</div>
 			<div className="flex-1 overflow-y-auto p-2">
 				<div className="space-y-1">
-					<Button variant="ghost" className="w-full justify-start gap-3 h-12 rounded-lg bg-slate-50 text-[#800517]">
-						<div className="bg-[#800517] text-white p-2 rounded-lg">
-							<Users size={18} />
-						</div>
-						<span className="font-semibold">Your Feed</span>
-					</Button>
+					
 					<Button variant="ghost" className="w-full justify-start gap-3 h-12 rounded-lg hover:bg-slate-50">
 						<div className="bg-slate-200 text-slate-600 p-2 rounded-lg">
 							<Globe size={18} />
@@ -215,10 +202,10 @@ export default function CommunitiesPage() {
 	];
 
 	const DiscoveryCenter = () => (
-		<div className="space-y-6">
+		<div className="w-full mx-auto space-y-6">
 			{/* Featured/Hero Area */}
 			<div className="bg-gradient-to-br from-[#800517] to-[#a0061d] md:rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
-				<div className="relative z-10 max-w-lg">
+				<div className="relative z-10 ">
 					<h2 className="text-3xl font-bold mb-3">Find Your Spiritual Family</h2>
 					<p className="text-white/80 mb-6">Join faith-centered communities to grow, share, and connect with believers worldwide.</p>
 					<Link href="/communities/create">
@@ -228,50 +215,6 @@ export default function CommunitiesPage() {
 					</Link>
 				</div>
 				<Users size={200} className="absolute -right-10 -bottom-10 text-white/10 rotate-12" />
-			</div>
-
-			{/* Your Communities Section */}
-			<div className="bg-white p-6 md:rounded-2xl shadow-sm border border-x-0 md:border-x">
-				<h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-					<Users className="text-[#800517]" size={20} />
-					Your Communities
-				</h3>
-				<div className="space-y-4">
-					{isLoadingUserCommunities ? (
-						<div className="flex justify-center py-4">
-							<div className="animate-spin h-5 w-5 border-2 border-[#800517] border-t-transparent rounded-full"></div>
-						</div>
-					) : userCommunities.length > 0 ? (
-						userCommunities.map((community) => (
-							<div key={community.id} className="flex items-center gap-3">
-								<Avatar className="h-10 w-10">
-									<AvatarImage src={community.avatarUrl} className="object-cover" />
-									<AvatarFallback>{community.name.charAt(0)}</AvatarFallback>
-								</Avatar>
-								<div className="flex-1 min-w-0">
-									<p className="text-sm font-bold text-slate-800 truncate">{community.name}</p>
-									<p className="text-[10px] text-slate-500">Member</p>
-								</div>
-								<Link href={`/communities/${community.id}`}>
-									<Button
-										size="sm"
-										variant="outline"
-										className="h-8 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
-									>
-										View
-									</Button>
-								</Link>
-							</div>
-						))
-					) : (
-						<div className="text-center py-4">
-							<p className="text-xs text-slate-400 italic mb-2">No joined communities</p>
-							<Link href="/communities">
-								<Button variant="ghost" className="text-xs text-[#800517] font-bold">Discover Groups</Button>
-							</Link>
-						</div>
-					)}
-				</div>
 			</div>
 
 			{/* Suggested (expanded) */}
@@ -306,49 +249,15 @@ export default function CommunitiesPage() {
 		</div>
 	);
 
-	const CommunityActivitySidebar = () => (
-		<div className="space-y-6">
-			<div className="bg-white p-5 rounded-xl shadow-sm border">
-				<h3 className="font-bold text-lg mb-4 text-slate-800">Recent Activity</h3>
-				<div className="space-y-4">
-					{[1, 2, 3].map(i => (
-						<div key={i} className="flex gap-3">
-							<Avatar className="h-8 w-8">
-								<AvatarFallback>U{i}</AvatarFallback>
-							</Avatar>
-							<div>
-								<p className="text-sm text-slate-600">
-									<span className="font-semibold text-slate-800 text-xs">Mervin James</span> posted in <span className="font-semibold text-[#800517] text-xs">Prayer Warriors</span>
-								</p>
-								<p className="text-[10px] text-slate-400 mt-0.5">20 minutes ago</p>
-							</div>
-						</div>
-					))}
-				</div>
-			</div>
-
-			<div className="bg-white p-5 rounded-xl shadow-sm border">
-				<h3 className="font-bold text-lg mb-4 text-slate-800">Top Contributors</h3>
-				<div className="flex -space-x-2 mb-4">
-					{[1, 2, 3, 4, 5].map(i => (
-						<Avatar key={i} className="h-10 w-10 border-2 border-white">
-							<AvatarFallback className="bg-[#800517] text-white text-xs">U{i}</AvatarFallback>
-						</Avatar>
-					))}
-					<div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 border-2 border-white">+12</div>
-				</div>
-				<p className="text-xs text-slate-500">Weekly spiritual leaders in our community base.</p>
-			</div>
-		</div>
-	);
-
 	return (
 		<div className="min-h-screen bg-[#F0F2F5]">
 			<Header />
 			<PageGrid
 				left={<CommunityListSidebar />}
 				center={<DiscoveryCenter />}
-				right={<CommunityActivitySidebar />}
+				leftMobileVisibility="block"
+				centerMobileVisibility="hidden"
+				centerFullWidth
 			/>
 			<BottomNav />
 		</div>

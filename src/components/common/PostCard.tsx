@@ -424,18 +424,18 @@ export function PostCard({
                 }`}
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
-              <span className="font-medium">{currentLikesCount}</span>
+              <span className="hidden md:inline font-medium">{currentLikesCount}</span>
             </button>
             <button
               onClick={handleLoadComments}
               className="flex items-center gap-1.5 hover:text-primary transition-colors"
             >
               <MessageSquareText size={18} />
-              <span className="font-medium">{commentsCount}</span>
+              <span className="hidden md:inline font-medium">{commentsCount}</span>
             </button>
             <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
               <Repeat2 size={18} />
-              <span className="font-medium">0</span>
+              <span className="hidden md:inline font-medium">0</span>
             </button>
           </div>
 
