@@ -414,7 +414,7 @@ export function PostCard({
         )}
       </CardContent>
 
-      <CardFooter className="border-t py-4">
+      <CardFooter className="border-t py-2">
         <div className="flex flex-col w-full gap-4">
           {/* Action Buttons */}
           <div className="flex items-center justify-between w-full text-sm text-gray-600 sm:justify-start sm:gap-12">
