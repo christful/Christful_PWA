@@ -1,17 +1,24 @@
 "use client";
+
 import Image from "next/image";
 import { useState } from "react";
 import {
   Card,
-  CardAction,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Share, Ellipsis, Play, Pause, Volume2, MessageSquareText, Heart, Repeat2, Eye, X, Bookmark, Flag, Trash2 } from "lucide-react"
+import {
+  Heart,
+  MessageSquareText,
+  Repeat2,
+  Ellipsis,
+  Bookmark,
+  Trash2,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -19,10 +26,11 @@ import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { formatRelativeTime } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 
 export interface PostCardProps {
   postId: string;
-  postType: 'image' | 'video' | 'audio' | 'text';
+  postType: "image" | "video" | "audio" | "text";
   authorId: string;
   authorName: string;
   authorAvatar: string;
@@ -53,171 +61,40 @@ export function PostCard({
   isLiked = false,
   isSaved = false,
 }: PostCardProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioProgress, setAudioProgress] = useState(0);
   const [liked, setLiked] = useState(isLiked);
   const [saved, setSaved] = useState(isSaved);
   const [currentLikesCount, setCurrentLikesCount] = useState(likesCount);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
-  const [loadingComments, setLoadingComments] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null);
   const [showFullText, setShowFullText] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
-  const renderMedia = () => {
-    switch (postType) {
-      case 'image':
-        return imageUrl && (
-          <div
-            className="relative w-full h-80 md:h-[450px] overflow-hidden cursor-zoom-in group"
-            onClick={() => setIsMediaModalOpen(true)}
-          >
-            <Image
-              src={imageUrl}
-              alt="Post image"
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-700"
-              sizes="100vw"
-            />
-          </div>
-        );
+  const isOwnPost =
+    typeof window !== "undefined" &&
+    localStorage.getItem("userId") === authorId;
 
-      case 'video':
-        return videoUrl && (
-          <div className="relative w-full h-80 md:h-[450px] overflow-hidden group bg-black flex items-center justify-center">
-            <video
-              src={videoUrl}
-              className="max-w-full max-h-full"
-              controls
-            />
-            <button
-              onClick={() => setIsMediaModalOpen(true)}
-              className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              title="Full screen view"
-            >
-              <Eye size={20} />
-            </button>
-          </div>
-        );
-
-      case 'audio':
-        return audioUrl && (
-          <div className="flex items-center gap-4 p-6 bg-slate-50 border-y">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="flex items-center justify-center w-14 h-14 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md transition-all active:scale-95"
-            >
-              {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-            </button>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Volume2 size={18} className="text-gray-500" />
-                <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${audioProgress}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'text':
-      default:
-        return null;
-    }
-  };
+  const hasMedia = postType !== "text" && (imageUrl || videoUrl || audioUrl);
 
   const handleLike = async () => {
-    // Optimistic update
-    const previousLiked = liked;
-    const previousCount = currentLikesCount;
+    const prevLiked = liked;
+    const prevCount = currentLikesCount;
+
     setLiked(!liked);
-    setCurrentLikesCount(liked ? currentLikesCount - 1 : currentLikesCount + 1);
+    setCurrentLikesCount(liked ? prevCount - 1 : prevCount + 1);
 
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.LIKE_POST(postId), {
+      await fetch(ENDPOINTS.LIKE_POST(postId), {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to like post");
-      }
-      toast.success(liked ? "Post unliked" : "Post liked");
-    } catch (error) {
-      // Revert on error
-      setLiked(previousLiked);
-      setCurrentLikesCount(previousCount);
-      console.error("Error liking post:", error);
-      toast.error("Failed to like post");
-    }
-  };
-
-  const handleSave = async () => {
-    // Optimistic update
-    const previousSaved = saved;
-    setSaved(!saved);
-
-    try {
-      const token = localStorage.getItem("auth_token");
-      const endpoint = saved ? ENDPOINTS.UNSAVE_POST(postId) : ENDPOINTS.SAVE_POST(postId);
-      const method = saved ? "DELETE" : "POST";
-
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save post");
-      }
-      toast.success(saved ? "Post removed from Library" : "Post saved to Library");
-    } catch (error) {
-      // Revert on error
-      setSaved(previousSaved);
-      console.error("Error saving post:", error);
-      toast.error("Failed to update save status");
-    }
-  };
-
-  const handleFollow = async () => {
-    // Optimistic update
-    const previousFollowing = isFollowing;
-    setIsFollowing(!isFollowing);
-
-    try {
-      const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.FOLLOW(authorId), {
-        method: isFollowing ? "DELETE" : "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to follow user");
-      }
-      toast.success(isFollowing ? "Unfollowed" : "Followed");
-    } catch (error) {
-      // Revert on error
-      setIsFollowing(previousFollowing);
-      console.error("Error following user:", error);
-      toast.error("Failed to follow user");
+    } catch {
+      setLiked(prevLiked);
+      setCurrentLikesCount(prevCount);
+      toast.error("Failed to update like");
     }
   };
 
@@ -228,35 +105,23 @@ export function PostCard({
     }
 
     try {
-      setLoadingComments(true);
       const token = localStorage.getItem("auth_token");
-
       const response = await fetch(ENDPOINTS.COMMENTS(postId), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
         setComments(Array.isArray(data) ? data : data.comments || []);
         setShowComments(true);
-      } else {
-        toast.error("Failed to load comments");
       }
-    } catch (error) {
-      console.error("Error loading comments:", error);
+    } catch {
       toast.error("Failed to load comments");
-    } finally {
-      setLoadingComments(false);
     }
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim()) {
-      toast.error("Comment cannot be empty");
-      return;
-    }
+    if (!commentText.trim()) return;
 
     try {
       setIsLoading(true);
@@ -279,295 +144,363 @@ export function PostCard({
         setComments([...comments, newComment]);
         setCommentText("");
         setReplyingTo(null);
-        toast.success(replyingTo ? "Reply added" : "Comment added");
-      } else {
-        toast.error("Failed to add comment");
       }
-    } catch (error) {
-      console.error("Error adding comment:", error);
+    } catch {
       toast.error("Failed to add comment");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isOwnPost = localStorage.getItem("userId") === authorId;
+  const renderMedia = () => {
+    const mediaClasses = "relative w-full bg-gradient-to-br from-gray-900 to-black overflow-hidden";
 
-  const hasMedia = postType !== 'text' && (imageUrl || videoUrl || audioUrl);
+    switch (postType) {
+      case "image":
+        return imageUrl && (
+          <div
+            className={cn(
+              mediaClasses,
+              "aspect-square md:aspect-[4/5] cursor-zoom-in group",
+              "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full", // Full width on mobile
+              "border-0" // Remove border on mobile
+            )}
+            onClick={() => setIsMediaModalOpen(true)}
+          >
+            <Image
+              src={imageUrl}
+              alt="Post content"
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="100vw"
+              priority={false}
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+          </div>
+        );
+
+      case "video":
+        return videoUrl && (
+          <div className={cn(
+            mediaClasses,
+            "aspect-video",
+            "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full", // Full width on mobile
+            "border-0" // Remove border on mobile
+          )}>
+            <video
+              src={videoUrl}
+              className="w-full h-full object-cover"
+              controls
+              playsInline
+              preload="metadata"
+            />
+          </div>
+        );
+
+      case "audio":
+        return audioUrl && (
+          <div className={cn(
+            "w-full bg-gray-100 dark:bg-gray-800",
+            "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full", // Full width on mobile
+            "px-4 py-4 md:rounded-xl md:border md:border-gray-200 md:dark:border-gray-700"
+          )}>
+            <audio src={audioUrl} controls className="w-full" />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
-    <Card className="overflow-hidden shadow-none rounded-2xl md:rounded-xl border md:border-x">
-      <CardHeader className="flex items-center justify-between px-4 md:px-6">
-        <div className="flex gap-3 items-start">
-          <Link href={`/profile/${authorId}`} className="inline-block">
-            <Avatar>
-              <AvatarImage src={authorAvatar} />
-              <AvatarFallback>
-                {authorName.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
+    <>
+      <Card className="rounded-2xl border-0 bg-white dark:bg-gray-950 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+        {/* HEADER */}
+        <CardHeader className="flex flex-row items-start justify-between px-4 md:px-5 pt-5 pb-3">
+          <div className="flex gap-3">
+            <Link href={`/profile/${authorId}`} className="group">
+              <Avatar className="h-11 w-11 ring-2 ring-white dark:ring-gray-900 group-hover:ring-primary/20 transition-all">
+                <AvatarImage src={authorAvatar} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {authorName?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
 
-          <div>
-            <CardTitle className="text-base font-semibold">
-              <Link href={`/profile/${authorId}`} className="hover:underline">
-                {authorName}
+            <div className="space-y-0.5">
+              <Link 
+                href={`/profile/${authorId}`} 
+                className="hover:text-primary transition-colors"
+              >
+                <span className="text-base font-semibold leading-none block">
+                  {authorName}
+                </span>
               </Link>
-              {!isOwnPost && !isFollowing && (
-                <button
-                  onClick={handleFollow}
-                  className="text-[11px] font-bold bg-[#800517] text-white px-3 py-1 rounded-full ml-3 hover:bg-[#a0061d] transition-colors active:scale-95 shadow-sm"
-                >
-                  Follow
-                </button>
-              )}
-            </CardTitle>
-            <CardDescription className="text-sm">{formatRelativeTime(date)}</CardDescription>
+              <span className="text-xs text-gray-500 dark:text-gray-400 block">
+                {formatRelativeTime(date)}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <CardAction className="flex gap-2">
-          <Share className="h-5 w-5 cursor-pointer hover:text-gray-600" />
           <Popover>
             <PopoverTrigger asChild>
-              <Ellipsis className="h-5 w-5 cursor-pointer hover:text-gray-600" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <Ellipsis className="h-4 w-4" />
+              </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-2 rounded-xl" align="end">
-              <div className="space-y-1">
+            <PopoverContent align="end" className="w-48 p-1 rounded-xl">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start gap-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={() => setSaved(!saved)}
+              >
+                <Bookmark className={cn("h-4 w-4", saved && "fill-current")} />
+                {saved ? "Saved" : "Save post"}
+              </Button>
+              {isOwnPost && (
                 <Button
                   variant="ghost"
-                  className={`w-full justify-start gap-2 h-9 text-sm ${saved ? "text-primary" : ""}`}
-                  onClick={handleSave}
+                  className="w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg"
                 >
-                  <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} /> {saved ? "Unsave Post" : "Save Post"}
+                  <Trash2 className="h-4 w-4" />
+                  Delete post
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2 h-9 text-sm text-orange-600 hover:bg-orange-50"
-                  onClick={() => toast.info("Post reported to administrators.")}
-                >
-                  <Flag className="h-4 w-4" /> Report Post
-                </Button>
-                {isOwnPost && (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-2 h-9 text-sm text-red-600 hover:bg-red-50"
-                    onClick={async () => {
-                      if (window.confirm("Are you sure you want to delete this post?")) {
-                        try {
-                          const token = localStorage.getItem("auth_token");
-                          const response = await fetch(ENDPOINTS.POST_DETAIL(postId), {
-                            method: "DELETE",
-                            headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (response.ok) {
-                            toast.success("Post deleted successfully");
-                            // Optionally trigger a refresh or hide the card locally
-                            // Since this is a shared card, we'll inform the user it needs a refresh or just hide it
-                            window.location.reload();
-                          } else {
-                            toast.error("Failed to delete post");
-                          }
-                        } catch (error) {
-                          console.error("Delete error:", error);
-                          toast.error("An error occurred while deleting");
-                        }
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" /> Delete Post
-                  </Button>
-                )}
-              </div>
+              )}
             </PopoverContent>
           </Popover>
-        </CardAction>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="space-y-4 px-0 pb-0">
-        {textContent && (
-          <div className="px-4 md:px-6 pt-2">
-            <p className={`text-[15px] md:text-base text-gray-800 whitespace-pre-line leading-relaxed ${!showFullText ? "line-clamp-4" : ""}`}>
-              {textContent}
-            </p>
-            {textContent.length > 280 && (
-              <button
-                onClick={() => setShowFullText(!showFullText)}
-                className="text-primary hover:underline text-sm font-semibold mt-2"
-              >
-                {showFullText ? "Show less" : "See more"}
-              </button>
+        {/* CONTENT */}
+        <CardContent className=" pt-0 pb-2 space-y-4">
+          {textContent && (
+            <div className="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200">
+              <p className={cn(!showFullText && "line-clamp-4")}>
+                {textContent}
+              </p>
+
+              {textContent.length > 250 && (
+                <button
+                  onClick={() => setShowFullText(!showFullText)}
+                  className="text-sm text-primary hover:text-primary/80 font-medium mt-2 inline-flex items-center gap-1 group"
+                >
+                  {showFullText ? "Show less" : "See more"}
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    showFullText && "rotate-180"
+                  )} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {hasMedia && renderMedia()}
+        </CardContent>
+
+        {/* ENGAGEMENT METRICS */}
+        {(currentLikesCount > 0 || comments.length > 0 || commentsCount > 0) && (
+          <div className="px-4 md:px-5 pb-1 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            {currentLikesCount > 0 && (
+              <span className="font-medium">
+                {currentLikesCount} {currentLikesCount === 1 ? 'like' : 'likes'}
+              </span>
+            )}
+            {(comments.length || commentsCount) > 0 && (
+              <span className="font-medium">
+                {comments.length || commentsCount} comments
+              </span>
             )}
           </div>
         )}
 
-        {hasMedia && (
-          <div className="w-full mt-1.5">
-            {renderMedia()}
-          </div>
-        )}
-
-        {!textContent && postType === 'text' && (
-          <div className="px-4 md:px-6 py-4">
-            <p className="text-gray-500 italic">No content</p>
-          </div>
-        )}
-      </CardContent>
-
-      <CardFooter className="border-t py-2">
-        <div className="flex flex-col w-full gap-4">
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between w-full text-sm text-gray-600 sm:justify-start sm:gap-12">
+        {/* FOOTER ACTIONS */}
+        <CardFooter className="border-t border-gray-100 dark:border-gray-800 px-4 md:px-5 py-3 mt-2">
+          <div className="flex items-center justify-between w-full">
+            {/* LIKE */}
             <button
               onClick={handleLike}
-              className={`flex items-center gap-1.5 transition-colors ${liked ? "text-red-500" : "hover:text-primary"
-                }`}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200",
+                liked 
+                  ? "text-red-500 bg-red-50 dark:bg-red-950/30" 
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              )}
             >
-              <Heart size={18} fill={liked ? "currentColor" : "none"} />
-              <span className="hidden md:inline font-medium">{currentLikesCount}</span>
+              <Heart
+                size={20}
+                fill={liked ? "currentColor" : "none"}
+                className={cn("transition-transform", liked && "scale-110")}
+              />
+              <span className="text-sm font-medium hidden sm:inline">
+                Like
+              </span>
             </button>
+
+            {/* COMMENT */}
             <button
               onClick={handleLoadComments}
-              className="flex items-center gap-1.5 hover:text-primary transition-colors"
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200",
+                showComments
+                  ? "text-primary bg-primary/10"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              )}
             >
-              <MessageSquareText size={18} />
-              <span className="hidden md:inline font-medium">{commentsCount}</span>
+              <MessageSquareText size={20} />
+              <span className="text-sm font-medium hidden sm:inline">
+                Comment
+              </span>
             </button>
-            <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
-              <Repeat2 size={18} />
-              <span className="hidden md:inline font-medium">0</span>
+
+            {/* SHARE */}
+            <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
+              <Repeat2 size={20} />
+              <span className="text-sm font-medium hidden sm:inline">
+                Share
+              </span>
             </button>
           </div>
+        </CardFooter>
 
-          {/* Comments Section */}
-          {showComments && (
-            <div className="border-t pt-4 space-y-4">
+        {/* COMMENTS SECTION */}
+        {showComments && (
+          <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 px-4 md:px-5 py-4">
+            <div className="space-y-4">
               {/* Comment Input */}
-              <div className="flex flex-col gap-2">
-                {replyingTo && (
-                  <div className="flex items-center justify-between bg-primary/5 px-3 py-1 rounded-lg border border-primary/10 ml-10">
-                    <span className="text-[10px] text-primary font-medium italic">
-                      Replying to <span className="font-bold">{replyingTo.name}</span>
-                    </span>
-                    <button
-                      onClick={() => setReplyingTo(null)}
-                      className="text-primary hover:text-red-500"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-                <div className="flex gap-2 items-start">
-                  <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarImage src={localStorage.getItem("userAvatar") || ""} />
-                    <AvatarFallback>{(localStorage.getItem("userName") || "U").charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 flex gap-2">
-                    <Input
-                      placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."}
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      disabled={isLoading}
-                      className="flex-1 bg-slate-100 border-none rounded-2xl py-2 px-4 focus-visible:ring-0 h-9 text-sm"
-                    />
-                    <button
-                      onClick={handleAddComment}
-                      disabled={isLoading || !commentText.trim()}
-                      className="p-2 text-primary hover:bg-primary/10 rounded-full disabled:opacity-50 transition-colors"
-                    >
-                      <Share className="h-5 w-5 rotate-90" />
-                    </button>
-                  </div>
+              <div className="flex gap-3">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage src={localStorage.getItem("userAvatar") || ""} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    {localStorage.getItem("userName")?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    disabled={isLoading}
+                    className="flex-1 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 rounded-xl focus-visible:ring-primary"
+                  />
+                  <Button 
+                    onClick={handleAddComment} 
+                    disabled={isLoading || !commentText.trim()}
+                    className="rounded-xl px-5 bg-primary hover:bg-primary/90 text-white"
+                  >
+                    {isLoading ? "Posting..." : "Post"}
+                  </Button>
                 </div>
               </div>
 
+              {/* Replying indicator */}
+              {replyingTo && (
+                <div className="flex items-center justify-between bg-primary/5 text-sm px-3 py-2 rounded-lg">
+                  <span>
+                    Replying to <span className="font-semibold">{replyingTo.name}</span>
+                  </span>
+                  <button
+                    onClick={() => setReplyingTo(null)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
               {/* Comments List */}
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-2 scrollbar-hide">
+              <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
                 {comments.length > 0 ? (
-                  comments.map((comment, idx) => (
-                    <div key={comment.id || idx} className="flex gap-2 items-start group">
-                      <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
-                        <AvatarImage src={comment.authorAvatar} />
-                        <AvatarFallback>{comment.authorName?.[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col gap-1 flex-1">
-                        <div className="bg-slate-100 rounded-[18px] py-2 px-3 inline-block max-w-[95%]">
-                          { (comment.authorId || comment.author?.id || comment.userId || comment.user?.id) ? (
-                            <Link href={`/profile/${comment.authorId || comment.author?.id || comment.userId || comment.user?.id}`} className="font-bold text-xs hover:underline">
+                  comments.map((comment, index) => (
+                    <div key={index} className="flex gap-3 group">
+                      <Link href={`/profile/${comment.authorId}`} className="shrink-0">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={comment.authorAvatar} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            {comment.authorName?.[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+
+                      <div className="flex-1">
+                        <div className="bg-white dark:bg-gray-950 rounded-2xl px-4 py-2.5 border border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center justify-between mb-1">
+                            <Link 
+                              href={`/profile/${comment.authorId}`}
+                              className="font-semibold text-sm hover:text-primary transition-colors"
+                            >
                               {comment.authorName}
                             </Link>
-                          ) : (
-                            <div className="font-bold text-xs">{comment.authorName}</div>
-                          )}
-                          <div className="text-sm text-gray-800 break-words leading-tight">{comment.content || comment.text}</div>
+                            <span className="text-xs text-gray-500">
+                              {formatRelativeTime(comment.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {comment.content}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-4 text-xs font-bold text-gray-500 px-2">
-                          <button className="hover:underline">Like</button>
-                          <button
-                            className="hover:underline"
+                        
+                        {/* Comment actions */}
+                        <div className="flex items-center gap-3 mt-1 ml-2">
+                          <button 
                             onClick={() => setReplyingTo({ id: comment.id, name: comment.authorName })}
+                            className="text-xs text-gray-500 hover:text-primary transition-colors"
                           >
                             Reply
                           </button>
-                          <span className="font-normal text-[10px] text-gray-400">
-                            {comment.createdAt ? formatRelativeTime(comment.createdAt) : "Just now"}
-                          </span>
+                          <button className="text-xs text-gray-500 hover:text-primary transition-colors">
+                            Like
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-center text-gray-400 text-sm py-8 italic font-medium">No comments yet. Be the first to gospel share!</p>
+                  <div className="text-center py-8">
+                    <MessageSquareText className="h-8 w-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      No comments yet. Be the first to comment!
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
-          )}
-        </div>
-      </CardFooter>
+          </div>
+        )}
+      </Card>
 
-      {/* Media Modal (Review Post) */}
-      {isMediaModalOpen && (
-        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* MEDIA MODAL */}
+      {isMediaModalOpen && imageUrl && (
+        <div 
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setIsMediaModalOpen(false)}
+        >
           <button
             onClick={() => setIsMediaModalOpen(false)}
-            className="absolute top-6 right-6 text-white hover:text-gray-300 z-[110] bg-black/20 p-2 rounded-full transition-colors"
+            className="absolute top-6 right-6 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2 transition-all duration-200"
           >
-            <X size={32} />
+            <X size={28} />
           </button>
 
-          <div
-            className="relative max-w-5xl w-full h-full flex items-center justify-center"
+          <div 
+            className="relative w-full max-w-6xl max-h-[90vh] aspect-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {postType === 'image' && imageUrl && (
-              <div className="relative w-full h-full">
-                <Image
-                  src={imageUrl}
-                  alt="Post media full view"
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            )}
-
-            {postType === 'video' && videoUrl && (
-              <video
-                src={videoUrl}
-                className="max-h-full max-w-full rounded-lg shadow-2xl"
-                controls
-                autoPlay
-              />
-            )}
+            <Image
+              src={imageUrl}
+              alt="Full view"
+              fill
+              className="object-contain"
+              sizes="100vw"
+              priority
+            />
           </div>
-
-          {/* Backdrop click to close */}
-          <div
-            className="absolute inset-0 -z-10"
-            onClick={() => setIsMediaModalOpen(false)}
-          />
         </div>
       )}
-    </Card>
+    </>
   );
 }
