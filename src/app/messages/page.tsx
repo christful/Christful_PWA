@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
 import { PageGrid } from "@/components/common/PageGrid";
@@ -44,6 +44,18 @@ const BIBLE_VERSES = [
 ];
 
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#800517]"></div>
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
+  );
+}
+
+function MessagesContent() {
   const [selectedChat, setSelectedChat] = useState<GroupChat | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
