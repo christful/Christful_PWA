@@ -20,8 +20,10 @@ interface Community {
   id: string;
   name: string;
   description: string;
-  avatarUrl?: string;
-  coverUrl?: string;
+  avatarUrl?: string; // local mapping for compatibility
+  profileImageUrl?: string | null;
+  coverUrl?: string; // local mapping for compatibility
+  coverImageUrl?: string | null;
   isPrivate: boolean;
   creator: {
     id: string;
@@ -30,7 +32,13 @@ interface Community {
     avatarUrl?: string;
   };
   memberships: any[];
-  groups: any[];
+  groups: Array<{
+    id: string;
+    name: string;
+    description: string;
+    profileImageUrl?: string | null;
+    members?: any[];
+  }>;
 }
 
 export default function CommunityDetailPage() {
@@ -52,10 +60,11 @@ export default function CommunityDetailPage() {
 
   useEffect(() => {
     if (communityData) {
-      // Map API fields to local interface (profileImageUrl -> avatarUrl)
-      const normalizedCommunity = {
+      // Map API fields to local interface (profileImageUrl -> avatarUrl, coverImageUrl -> coverUrl)
+      const normalizedCommunity: Community = {
         ...communityData,
-        avatarUrl: communityData.avatarUrl || (communityData as any).profileImageUrl || null,
+        avatarUrl: communityData.profileImageUrl || (communityData as any).avatarUrl || null,
+        coverUrl: communityData.coverImageUrl || (communityData as any).coverUrl || null,
       };
       setCommunity(normalizedCommunity);
       const userId = localStorage.getItem("userId");
@@ -227,6 +236,7 @@ export default function CommunityDetailPage() {
               return (
                 <div key={group.id} className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
+                    <AvatarImage src={group.profileImageUrl || undefined} className="object-cover" />
                     <AvatarFallback>{group.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
