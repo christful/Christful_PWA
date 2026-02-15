@@ -25,6 +25,8 @@ interface GroupChat {
   name: string;
   lastMessage?: string;
   lastMessageTime?: string;
+  profileImageUrl?: string | null;
+  coverImageUrl?: string | null;
   members: any[];
   communityId?: string;
   communityName?: string;
@@ -389,6 +391,7 @@ function ChatList({ chats, selectedChat, onSelectChat, isLoading, searchQuery, s
             >
               <div className="relative">
                 <Avatar className="h-14 w-14 flex-shrink-0 border-2 border-white shadow-sm">
+                  <AvatarImage src={chat.profileImageUrl || undefined} className="object-cover" />
                   <AvatarFallback className="bg-slate-200 text-[#800517] font-bold text-xl">
                     {chat.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
@@ -463,6 +466,7 @@ function ActiveChat({
               </Button>
               <div className="relative">
                 <Avatar className="h-10 w-10 ring-2 ring-slate-100">
+                  <AvatarImage src={selectedChat.profileImageUrl || undefined} className="object-cover" />
                   <AvatarFallback className="bg-slate-100 text-[#800517] font-bold">
                     {selectedChat.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
@@ -702,6 +706,7 @@ function ProfileView({ selectedChat }: any) {
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="flex flex-col items-center pt-8 pb-6 px-4">
           <Avatar className="h-24 w-24 mb-4 ring-4 ring-slate-50 shadow-md">
+            <AvatarImage src={selectedChat.profileImageUrl || undefined} className="object-cover" />
             <AvatarFallback className="text-3xl font-bold bg-slate-100 text-[#800517]">
               {selectedChat.name.charAt(0).toUpperCase()}
             </AvatarFallback>

@@ -27,6 +27,8 @@ interface Group {
   id: string;
   name: string;
   description: string;
+  profileImageUrl?: string | null;
+  coverImageUrl?: string | null;
   creator: {
     firstName: string;
     lastName: string;
@@ -171,6 +173,7 @@ export default function GroupDetailPage() {
 
           <div className="flex items-center gap-3 cursor-pointer">
             <Avatar className="h-10 w-10 cursor-pointer">
+              <AvatarImage src={group.profileImageUrl || undefined} className="object-cover" />
               <AvatarFallback className="bg-slate-200 text-slate-500 font-medium">
                 {group.name.charAt(0)}
               </AvatarFallback>

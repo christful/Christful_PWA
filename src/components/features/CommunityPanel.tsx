@@ -54,9 +54,9 @@ export function CommunityPanel() {
         const mapped = rawCommunities.map((c: any) => ({
           id: c.id,
           name: c.name,
-          avatarUrl: c.profileImageUrl || c.profileImageUrl || c.creator?.avatarUrl || null,
+          avatarUrl: c.profileImageUrl || c.creator?.avatarUrl || null,
           creatorId: c.createdBy || c.creator?.id || null,
-          isMember: !!(c.userRole === "member" || c.joinedAt),
+          isMember: !!(c.userRole === "member" || c.joinedAt || c.memberships?.length > 0),
           userRole: c.userRole,
           profileImageUrl: c.profileImageUrl,
           createdBy: c.createdBy,
