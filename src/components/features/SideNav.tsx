@@ -113,7 +113,7 @@ export function SideNav() {
           ) : following.length > 0 ? (
             following.map((user: any) => (
               <Link key={user.id} href={`/profile/${user.id}`}>
-                <div className="flex gap-3 items-start">
+                <div className="flex gap-3  items-center">
                   <Avatar>
                     <AvatarImage src={user.avatarUrl} />
                     <AvatarFallback>{user.firstName.charAt(0)}</AvatarFallback>
