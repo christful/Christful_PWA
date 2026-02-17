@@ -4,6 +4,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Plus, Globe, Shield } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Community } from "@/app/communities/types";
 
 interface CommunityListSidebarProps {
     showMobileSidebar: boolean;
