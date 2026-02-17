@@ -9,7 +9,7 @@ import { BottomNav } from "@/components/common/BottomNav";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#FBFDFF] pb-20 md:pb-0">
+    <div className="min-h-screen bg-[#FBFDFF] md:pb-0">
       <Header />
       <PageGrid
         left={<SideNav />}

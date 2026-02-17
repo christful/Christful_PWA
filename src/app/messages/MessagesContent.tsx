@@ -1,8 +1,7 @@
 "use client"
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
-import { PageGrid } from "@/components/common/PageGrid";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageBubble } from "@/components/ui/message-bubble";
 import { Input } from "@/components/ui/input";
@@ -10,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ENDPOINTS } from "@/lib/api-config";
 import {
-  Search, MessageSquare, Send, Info, MoreVertical, Plus,
-  Mic, Smile, Phone, Video as VideoIcon, ChevronLeft,
-  Flag, LogOut, ShieldAlert, Trash2, Volume2, Heart,
-  Users as UsersIcon, Image as ImageIcon, User, Book
+  Search, MessageSquare, Send, Plus,
+  Mic, Smile, Video as VideoIcon, ChevronLeft,
+  Trash2, Volume2, Users as UsersIcon, Image as ImageIcon, Book, X, Music
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
@@ -31,7 +29,24 @@ interface GroupChat {
   communityName?: string;
 }
 
-const EMOJIS = ["🙏", "🙌", "✨", "❤️", "😊", "🔥", "🤝", "📖", "⛪", "🕊️", "😇", "💡", "💪", "🌈", "🎵", "✍️"];
+interface Message {
+  id: string;
+  content?: string;
+  sender?: {
+    id: string;
+    firstName: string;
+    avatarUrl?: string;
+  };
+  authorName?: string;
+  authorAvatar?: string;
+  createdAt: string;
+  audioUrl?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  status?: "sent" | "delivered" | "read";
+}
+
+const EMOJIS = ["🙏", "🙌", "✨", "❤️", "😊", "😂", "🔥", "🤝", "📖", "⛪", "🕊️", "😇", "💡", "💪", "🌈", "🎵", "✍️"];
 
 const BIBLE_VERSES = [
   { ref: "John 3:16", text: "For God so loved the world, that he gave his only begotten Son..." },
@@ -55,11 +70,17 @@ export default function MessagesContent() {
   const [newGroupDescription, setNewGroupDescription] = useState("");
   const [newGroupAvatar, setNewGroupAvatar] = useState<File | null>(null);
   const [isScriptureModalOpen, setIsScriptureModalOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch All Groups with Recent Messages (sorted by activity)
   const { data: recentMessagesData, isLoading: chatsLoading, mutate: mutateGroups } = useApi<{ groups: GroupChat[] }>(
     ENDPOINTS.GROUPS_WITH_RECENT_MESSAGES,
     { refreshInterval: 30000 }
@@ -68,10 +89,8 @@ export default function MessagesContent() {
   const groupChats = recentMessagesData?.groups || [];
 
   const searchParams = useSearchParams();
-  const groupIdParam = searchParams?.get("groupId");
 
-  // Fetch Messages with SWR
-  const { data: messagesData, mutate: mutateMessages } = useApi<{ messages: any[] }>(
+  const { data: messagesData, mutate: mutateMessages } = useApi<{ messages: Message[] }>(
     selectedChat ? ENDPOINTS.GROUP_MESSAGES(selectedChat.id) : null,
     { refreshInterval: 2000 }
   );
@@ -79,9 +98,7 @@ export default function MessagesContent() {
   const messages = messagesData?.messages || [];
 
   useEffect(() => {
-    // Select first chat if none selected and chats loaded
     if (groupChats.length > 0 && !selectedChat) {
-      // If a groupId is present in the URL, try to open that chat (only if joined)
       const param = searchParams?.get("groupId");
       if (param) {
         const match = groupChats.find((g: any) => g.id === param);
@@ -97,7 +114,6 @@ export default function MessagesContent() {
           return;
         }
       }
-
       setSelectedChat(groupChats[0]);
     }
   }, [groupChats, selectedChat, searchParams]);
@@ -106,7 +122,7 @@ export default function MessagesContent() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, mobileView]);
+  }, [messages]);
 
   const handleSelectChat = (chat: GroupChat) => {
     setSelectedChat(chat);
@@ -123,7 +139,7 @@ export default function MessagesContent() {
       setIsRecording(false);
       if (timerRef.current) clearInterval(timerRef.current);
     } else {
-      setAudioBlob(null); // Clear previous recording
+      setAudioBlob(null);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const mediaRecorder = new MediaRecorder(stream);
@@ -135,8 +151,6 @@ export default function MessagesContent() {
           const blob = new Blob(chunks, { type: 'audio/webm' });
           setAudioBlob(blob);
           stream.getTracks().forEach(track => track.stop());
-
-          // Ask if they want to send it
           toast.success("Voice note captured!", {
             action: {
               label: "Send",
@@ -196,13 +210,26 @@ export default function MessagesContent() {
   };
 
   const handleSendMessage = async (content: string, audio?: Blob) => {
-    if ((!content.trim() && !audio) || !selectedChat) return;
+    if ((!content.trim() && !audio && !selectedMedia) || !selectedChat) return;
 
     try {
       const token = localStorage.getItem("auth_token");
       const formData = new FormData();
-      if (content.trim()) formData.append("content", content);
-      if (audio) formData.append("audio", audio, "voice-note.webm");
+
+      if (content.trim()) {
+        formData.append("content", content);
+      }
+
+      // Handle voice note (audio blob from recording)
+      if (audio) {
+        formData.append("audio", audio, "voice-note.webm");
+      }
+
+      // Handle selected media file (image, video, or audio file)
+      if (selectedMedia) {
+        const fieldName = mediaType === 'image' ? 'image' : mediaType === 'video' ? 'video' : 'audio';
+        formData.append(fieldName, selectedMedia);
+      }
 
       const response = await fetch(ENDPOINTS.GROUP_MESSAGES(selectedChat.id), {
         method: "POST",
@@ -215,7 +242,10 @@ export default function MessagesContent() {
       if (response.ok) {
         setMessage("");
         setAudioBlob(null);
-        mutateMessages(); // Instant update with SWR
+        setSelectedMedia(null);
+        setMediaPreview(null);
+        setMediaType(null);
+        mutateMessages();
       } else {
         toast.error("Failed to send message");
       }
@@ -231,66 +261,125 @@ export default function MessagesContent() {
     setIsScriptureModalOpen(false);
   };
 
+  const handleMediaSelect = (type: 'image' | 'video' | 'audio') => {
+    if (type === 'image') {
+      fileInputRef.current?.click();
+    } else if (type === 'video') {
+      videoInputRef.current?.click();
+    } else {
+      audioInputRef.current?.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'audio') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = type === 'image' ? 10 * 1024 * 1024 : type === 'video' ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // audio 10MB
+    if (file.size > maxSize) {
+      toast.error(`File too large. Max ${type === 'image' ? '10MB' : type === 'video' ? '50MB' : '10MB'}`);
+      return;
+    }
+
+    setSelectedMedia(file);
+    setMediaType(type);
+    if (type === 'image' || type === 'video') {
+      const previewUrl = URL.createObjectURL(file);
+      setMediaPreview(previewUrl);
+    } else {
+      // For audio, just show file name as preview?
+      setMediaPreview(null);
+      toast.info(`Selected audio: ${file.name}`);
+    }
+    // Auto-send after selection (optional, can also add a send button)
+    handleSendMessage("", undefined);
+  };
+
   const filteredChats = groupChats.filter((chat: any) =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] pb-20 md:pb-0 overflow-hidden">
+    <div className="bg-[#F0F2F5] min-h-screen pt-16 md:pt-20">
       <Header />
-      <PageGrid
-        left={
-          <ChatList
-            chats={filteredChats}
-            selectedChat={selectedChat}
-            onSelectChat={handleSelectChat}
-            isLoading={chatsLoading}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onOpenCreateModal={() => setIsCreateModalOpen(true)}
-            mobileView={mobileView}
-          />
-        }
-        center={
-          <ActiveChat
-            selectedChat={selectedChat}
-            messages={messages}
-            message={message}
-            setMessage={setMessage}
-            onSendMessage={handleSendMessage}
-            onSendScripture={handleSendScripture}
-            onEmojiClick={handleEmojiClick}
-            toggleRecording={toggleRecording}
-            isRecording={isRecording}
-            recordingDuration={recordingDuration}
-            audioBlob={audioBlob}
-            setAudioBlob={setAudioBlob}
-            isScriptureModalOpen={isScriptureModalOpen}
-            setIsScriptureModalOpen={setIsScriptureModalOpen}
-            mobileView={mobileView}
-            setMobileView={setMobileView}
-            scrollRef={scrollRef}
-          />
-        }
-        right={
-          <div className="hidden lg:block h-full">
-            <ProfileView
+      
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={(e) => handleFileChange(e, 'image')}
+      />
+      <input
+        type="file"
+        ref={videoInputRef}
+        className="hidden"
+        accept="video/*"
+        onChange={(e) => handleFileChange(e, 'video')}
+      />
+      <input
+        type="file"
+        ref={audioInputRef}
+        className="hidden"
+        accept="audio/*"
+        onChange={(e) => handleFileChange(e, 'audio')}
+      />
+
+      <div className="container mx-auto h-[calc(100vh-8rem)] px-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 h-full">
+          {/* Chat List - Left Column (1/3 width on desktop) */}
+          <div className={`${mobileView === "chat" ? "hidden md:block" : "block"} md:col-span-1 h-full`}>
+            <ChatList
+              chats={filteredChats}
               selectedChat={selectedChat}
+              onSelectChat={handleSelectChat}
+              isLoading={chatsLoading}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onOpenCreateModal={() => setIsCreateModalOpen(true)}
+              mobileView={mobileView}
             />
           </div>
-        }
-        leftMobileVisibility={mobileView === "list" ? "block" : "hidden"}
-        centerMobileVisibility={mobileView === "chat" ? "block" : "hidden"}
-      />
+
+          {/* Active Chat - Right Column (2/3 width on desktop) */}
+          <div className={`${mobileView === "list" ? "hidden md:block" : "block"} md:col-span-2 h-full`}>
+            <ActiveChat
+              selectedChat={selectedChat}
+              messages={messages}
+              message={message}
+              setMessage={setMessage}
+              onSendMessage={handleSendMessage}
+              onSendScripture={handleSendScripture}
+              onEmojiClick={handleEmojiClick}
+              toggleRecording={toggleRecording}
+              isRecording={isRecording}
+              recordingDuration={recordingDuration}
+              audioBlob={audioBlob}
+              setAudioBlob={setAudioBlob}
+              isScriptureModalOpen={isScriptureModalOpen}
+              setIsScriptureModalOpen={setIsScriptureModalOpen}
+              mobileView={mobileView}
+              setMobileView={setMobileView}
+              scrollRef={scrollRef}
+              onMediaSelect={handleMediaSelect}
+              mediaPreview={mediaPreview}
+              selectedMedia={selectedMedia}
+              setSelectedMedia={setSelectedMedia}
+              setMediaPreview={setMediaPreview}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Create Group Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-slate-900">New Group</h2>
               <Button variant="ghost" size="icon" onClick={() => setIsCreateModalOpen(false)} className="rounded-full">
-                <Plus size={20} className="rotate-45" />
+                <X size={20} />
               </Button>
             </div>
             <div className="space-y-4">
@@ -339,23 +428,15 @@ export default function MessagesContent() {
         </div>
       )}
       <BottomNav />
-      {/* 
-      @ts-ignore */}
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-      `}</style>
     </div>
   );
 }
 
-// Sub-components moved outside to fix the "one character" typing bug (component re-mounting)
+// ChatList component (simplified without borders)
 function ChatList({ chats, selectedChat, onSelectChat, isLoading, searchQuery, setSearchQuery, onOpenCreateModal, mobileView }: any) {
   return (
-    <div className={`bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] flex flex-col ${mobileView === "chat" ? "hidden md:flex" : "flex"}`}>
-      <div className="p-4 border-b">
+    <div className="bg-white h-full flex flex-col">
+      <div className="p-4 border-b border-gray-200">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-slate-900">Messages</h2>
           <Button
@@ -377,7 +458,7 @@ function ChatList({ chats, selectedChat, onSelectChat, isLoading, searchQuery, s
           />
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-2">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#800517]"></div>
@@ -387,8 +468,9 @@ function ChatList({ chats, selectedChat, onSelectChat, isLoading, searchQuery, s
             <div
               key={chat.id}
               onClick={() => onSelectChat(chat)}
-              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 ${selectedChat?.id === chat.id ? "bg-slate-100 ring-1 ring-slate-200" : "hover:bg-slate-50"
-                }`}
+              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 ${
+                selectedChat?.id === chat.id ? "bg-slate-100" : "hover:bg-slate-50"
+              }`}
             >
               <div className="relative">
                 <Avatar className="h-14 w-14 flex-shrink-0 border-2 border-white shadow-sm">
@@ -397,12 +479,13 @@ function ChatList({ chats, selectedChat, onSelectChat, isLoading, searchQuery, s
                     {chat.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {chat.communityId && (
-                  <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-[#800517] border-2 border-white rounded-lg flex items-center justify-center shadow-sm" title={`Community: ${chat.communityName}`}>
+                {chat.communityId ? (
+                  <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-[#800517] border-2 border-white rounded-lg flex items-center justify-center shadow-sm">
                     <UsersIcon size={12} className="text-white" />
                   </div>
+                ) : (
+                  <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 border-2 border-white rounded-full"></div>
                 )}
-                {!chat.communityId && <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 border-2 border-white rounded-full"></div>}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline mb-0.5">
@@ -448,7 +531,12 @@ function ActiveChat({
   setIsScriptureModalOpen,
   mobileView,
   setMobileView,
-  scrollRef
+  scrollRef,
+  onMediaSelect,
+  mediaPreview,
+  selectedMedia,
+  setSelectedMedia,
+  setMediaPreview
 }: any) {
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -456,11 +544,20 @@ function ActiveChat({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setUserId(localStorage.getItem("userId"));
+    }
+  }, []);
+
   return (
-    <div className={`bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] flex flex-col relative ${mobileView === "list" ? "hidden md:flex" : "flex"}`}>
+    <div className="bg-white h-full flex flex-col">
       {selectedChat ? (
         <>
-          <div className="p-3 border-b flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10 rounded-t-xl">
+          {/* Chat Header */}
+          <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileView("list")}>
                 <ChevronLeft size={24} />
@@ -479,40 +576,71 @@ function ActiveChat({
                 <p className="text-[10px] text-green-500 font-medium">Active now</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Button variant="ghost" size="icon" className="text-[#800517] hover:bg-red-50" onClick={() => toast.info("Call clicked")}>
-                <Volume2 size={20} />
-              </Button>
-            </div>
+            <Button variant="ghost" size="icon" className="text-[#800517] hover:bg-red-50" onClick={() => toast.info("Call clicked")}>
+              <Volume2 size={20} />
+            </Button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto bg-[#F7F8FA] flex flex-col gap-1 custom-scrollbar">
+          {/* Messages Area - Scrollable (fixed with min-h-0) */}
+          <div 
+            ref={scrollRef} 
+            className="flex-1 overflow-y-auto min-h-0 p-4 bg-[#F7F8FA]"
+          >
             {messages.length > 0 ? (
               messages.map((msg: any, idx: number) => (
                 <MessageBubble
                   key={msg.id || idx}
                   content={msg.content}
                   senderName={msg.sender?.firstName || msg.authorName || "User"}
-                  isMe={msg.senderId === (typeof window !== "undefined" ? localStorage.getItem("userId") : null)}
+                  isMe={userId ? msg.sender?.id === userId : false}
                   timestamp={msg.createdAt}
                   avatarUrl={msg.sender?.avatarUrl || msg.authorAvatar}
                   audioUrl={msg.audioUrl}
+                  imageUrl={msg.imageUrl}
+                  videoUrl={msg.videoUrl}
+                  status={msg.status}
                 />
               ))
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-20">
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 h-full">
                 <p className="text-sm italic">No messages yet. Start the conversation!</p>
               </div>
             )}
+
             {isRecording && (
-              <div className="flex items-center gap-2 self-end bg-red-50 border border-red-100 p-2 px-4 rounded-full animate-pulse shadow-sm">
+              <div className="flex items-center gap-2 self-end bg-red-50 border border-red-100 p-2 px-4 rounded-full animate-pulse shadow-sm w-fit">
                 <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
                 <span className="text-xs font-bold text-red-600">Recording... {formatDuration(recordingDuration)}</span>
               </div>
             )}
+
+            {/* Media Preview */}
+            {mediaPreview && (
+              <div className="flex justify-end mt-2">
+                <div className="relative max-w-[200px] rounded-lg overflow-hidden border">
+                  {selectedMedia?.type.startsWith('image/') ? (
+                    <img src={mediaPreview} alt="Preview" className="w-full h-auto" />
+                  ) : (
+                    <video src={mediaPreview} className="w-full h-auto" controls />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full h-6 w-6"
+                    onClick={() => {
+                      setSelectedMedia(null);
+                      setMediaPreview(null);
+                    }}
+                  >
+                    <X size={12} />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="p-3 border-t bg-white rounded-b-xl">
+          {/* Input Area */}
+          <div className="p-3 border-t border-gray-200 bg-white">
             <div className="flex items-center gap-2">
               <Popover open={isScriptureModalOpen} onOpenChange={setIsScriptureModalOpen}>
                 <PopoverTrigger asChild>
@@ -525,25 +653,11 @@ function ActiveChat({
                     <div className="flex items-center justify-between border-b pb-2">
                       <h3 className="font-bold text-slate-900">Share</h3>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       <Button
                         variant="ghost"
                         className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = 'image/*';
-                          input.onchange = (e: any) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              // In a real app, you'd upload this. For now, we simulate.
-                              toast.info(`Uploading image: ${file.name}`);
-                              onSendMessage(`[Image: ${file.name}]`);
-                              setIsScriptureModalOpen(false);
-                            }
-                          };
-                          input.click();
-                        }}
+                        onClick={() => onMediaSelect('image')}
                       >
                         <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
                           <ImageIcon size={24} />
@@ -553,25 +667,22 @@ function ActiveChat({
                       <Button
                         variant="ghost"
                         className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = 'video/*';
-                          input.onchange = (e: any) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              toast.info(`Uploading video: ${file.name}`);
-                              onSendMessage(`[Video: ${file.name}]`);
-                              setIsScriptureModalOpen(false);
-                            }
-                          };
-                          input.click();
-                        }}
+                        onClick={() => onMediaSelect('video')}
                       >
                         <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
                           <VideoIcon size={24} />
                         </div>
                         <span className="text-xs font-bold">Video</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
+                        onClick={() => onMediaSelect('audio')}
+                      >
+                        <div className="h-12 w-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
+                          <Music size={24} />
+                        </div>
+                        <span className="text-xs font-bold">Audio</span>
                       </Button>
                     </div>
                     <div className="space-y-3 pt-2 border-t">
@@ -579,7 +690,7 @@ function ActiveChat({
                         <Book size={18} className="text-[#800517]" />
                         Share Scripture
                       </h3>
-                      <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                      <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1">
                         {BIBLE_VERSES.map((v: any, i: number) => (
                           <button
                             key={i}
@@ -646,7 +757,7 @@ function ActiveChat({
                   >
                     <Mic size={20} />
                   </Button>
-                  {(message.trim() || audioBlob) && (
+                  {(message.trim() || audioBlob || selectedMedia) && (
                     <Button
                       size="icon"
                       className="rounded-full bg-[#800517] h-10 w-10 shrink-0 shadow-md hover:bg-[#A0061D]"
@@ -669,71 +780,6 @@ function ActiveChat({
           <p className="text-xs">Select a chat to start connecting with believers</p>
         </div>
       )}
-    </div>
-  );
-}
-
-function ProfileView({ selectedChat }: any) {
-  const handleShareLink = async () => {
-    if (!selectedChat) return;
-    try {
-      const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.GROUP_INVITE_LINK(selectedChat.id), {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const inviteLink = data.inviteLink || `${window.location.origin}/groups/join/${selectedChat.id}`;
-        await navigator.clipboard.writeText(inviteLink);
-        toast.success("Invite link copied to clipboard!");
-      } else {
-        toast.error("Failed to get invite link");
-      }
-    } catch (error) {
-      console.error("Invite error:", error);
-      toast.error("An error occurred");
-    }
-  };
-
-  if (!selectedChat) return (
-    <div className="bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] p-6 flex flex-col items-center justify-center text-slate-300">
-      <MessageSquare size={48} className="opacity-10 mb-4" />
-      <p className="text-sm font-medium text-slate-400">Select a conversation</p>
-    </div>
-  );
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="flex flex-col items-center pt-8 pb-6 px-4">
-          <Avatar className="h-24 w-24 mb-4 ring-4 ring-slate-50 shadow-md">
-            <AvatarImage src={selectedChat.profileImageUrl || undefined} className="object-cover" />
-            <AvatarFallback className="text-3xl font-bold bg-slate-100 text-[#800517]">
-              {selectedChat.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <h2 className="text-xl font-bold text-slate-900 text-center mb-1">{selectedChat.name}</h2>
-          <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium">
-            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-            <span>Active now</span>
-          </div>
-        </div>
-        <div className="px-6 space-y-3 pb-6">
-          <Button
-            className="w-full h-11 bg-[#800517] hover:bg-[#a0061d] font-bold rounded-xl shadow-sm"
-            onClick={handleShareLink}
-          >
-            Share Group Link
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-11 font-bold text-red-600 border-red-50 hover:bg-red-50 hover:text-red-700 rounded-xl transition-all"
-            onClick={() => toast.info("Leave Group clicked!")}
-          >
-            Leave Group
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -2,10 +2,16 @@ export interface Group {
   id: string;
   name: string;
   description: string;
-  profileImageUrl?: string | null;
-  coverImageUrl?: string | null;
+  avatarUrl?: string | null;
   createdAt: string;
-  membersCount?: number;
+  members?: Array<{
+    id: string;
+    userId: string;
+    groupId: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
   isJoined?: boolean;
 }
 
@@ -13,8 +19,7 @@ export interface Community {
   id: string;
   name: string;
   description: string;
-  profileImageUrl?: string | null;
-  coverImageUrl?: string | null;
+  avatarUrl?: string | null;
   isPrivate: boolean;
   createdAt: string;
   createdBy: string;

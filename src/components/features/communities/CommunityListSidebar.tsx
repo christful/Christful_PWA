@@ -95,7 +95,7 @@ export function CommunityListSidebar({
                                     )}
                                 >
                                     <Avatar className="h-10 w-10 rounded-lg border">
-                                        <AvatarImage src={community.profileImageUrl || undefined} className="object-cover" />
+                                        <AvatarImage src={community.avatarUrl || undefined} className="object-cover" />
                                         <AvatarFallback className="bg-slate-100 text-slate-600 text-sm">
                                             {community.name?.charAt(0).toUpperCase()}
                                         </AvatarFallback>
@@ -112,9 +112,7 @@ export function CommunityListSidebar({
                                                 <Shield className="h-3 w-3 text-[#800517]" />
                                             )}
                                         </div>
-                                        <span className="text-xs text-slate-500">
-                                            {community.memberships?.length || 0} members
-                                        </span>
+                                        
                                     </div>
                                 </div>
                             );

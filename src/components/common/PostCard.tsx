@@ -200,7 +200,7 @@ export function PostCard({
       case "audio":
         return audioUrl && (
           <div className={cn(
-            "w-full bg-gray-100 dark:bg-gray-800",
+            "w-full h-full bg-gray-100 dark:bg-gray-800",
             "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full", // Full width on mobile
             "px-4 py-4 md:rounded-xl md:border md:border-gray-200 md:dark:border-gray-700"
           )}>
@@ -215,9 +215,9 @@ export function PostCard({
 
   return (
     <>
-      <Card className="rounded-2xl border-0 bg-white dark:bg-gray-950 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      <Card className="md:rounded-2xl border-0 bg-white dark:bg-gray-950 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
         {/* HEADER */}
-        <CardHeader className="flex flex-row items-start justify-between px-4 md:px-5 pt-5 pb-3">
+        <CardHeader className="flex flex-row items-start justify-between px-4 md:px-5">
           <div className="flex gap-3">
             <Link href={`/profile/${authorId}`} className="group">
               <Avatar className="h-11 w-11 ring-2 ring-white dark:ring-gray-900 group-hover:ring-primary/20 transition-all">
@@ -279,7 +279,7 @@ export function PostCard({
         <CardContent className=" pt-0 pb-2 space-y-4">
           {textContent && (
             <div className="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200">
-              <p className={cn(!showFullText && "line-clamp-4")}>
+              <p className={cn("px-5", !showFullText && "line-clamp-4")}>
                 {textContent}
               </p>
 
@@ -303,7 +303,7 @@ export function PostCard({
 
         {/* ENGAGEMENT METRICS */}
         {(currentLikesCount > 0 || comments.length > 0 || commentsCount > 0) && (
-          <div className="px-4 md:px-5 pb-1 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+          <div className="px-4 md:px-5 pb-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             {currentLikesCount > 0 && (
               <span className="font-medium">
                 {currentLikesCount} {currentLikesCount === 1 ? 'like' : 'likes'}
@@ -318,7 +318,7 @@ export function PostCard({
         )}
 
         {/* FOOTER ACTIONS */}
-        <CardFooter className="border-t border-gray-100 dark:border-gray-800 px-4 md:px-5 py-3 mt-2">
+        <CardFooter className="border-t border-gray-100 dark:border-gray-800 px-4 md:px-5 py-3">
           <div className="flex items-center justify-between w-full">
             {/* LIKE */}
             <button

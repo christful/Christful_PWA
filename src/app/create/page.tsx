@@ -156,7 +156,7 @@ export default function CreatePage() {
           </button>
 
           {/* Create Post Card */}
-          <Card className="shadow-sm border-none md:border md:block">
+          <Card className="shadow-sm border-none md:border md:block px-2">
             <CardHeader className="border-b">
               <div className="flex items-center justify-between">
                 <CardTitle>{activeTab === "post" ? "Create a New Post" : "Share a Reel"}</CardTitle>

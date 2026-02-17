@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     ArrowLeft, Users, Grid, Calendar, UserPlus,
@@ -10,7 +12,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/date-utils";
-import { Community } from "@/app/communities/types";
+import { Community, Group } from "@/app/communities/types";
+import { ENDPOINTS } from "@/lib/api-config";
+
+
+
 
 interface CommunityDetailsProps {
     selectedCommunity: Community | null;
@@ -24,6 +30,29 @@ interface CommunityDetailsProps {
     activeTab: string;
     setActiveTab: (tab: string) => void;
 }
+const handleJoinGroup = async (groupId: string) => {
+  try {
+    const token = localStorage.getItem("auth_token");
+    const response = await fetch(ENDPOINTS.GROUP_JOIN(groupId), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      toast.success("Joined group successfully!");
+    }
+  } catch (error) {
+    console.error("Error joining group:", error);
+    toast.error("Failed to join group");
+  }
+};
+
+const checkIsGroupMember = (group: Group, currentUserId: string | null): boolean => {
+  if (!currentUserId || !group.members) return false;
+  return group.members.some(m => m.userId === currentUserId);
+};
 
 export function CommunityDetails({
     selectedCommunity,
@@ -48,7 +77,7 @@ export function CommunityDetails({
     // Show loading state while fetching details
     if (isLoadingCommunityDetails) {
         return (
-            <div className="w-full max-w-4xl mx-auto flex items-center justify-center min-h-[70vh]">
+            <div className="w-full max-w-4xl mx-auto flex items-center justify-center ">
                 <div className="animate-spin h-8 w-8 border-2 border-[#800517] border-t-transparent rounded-full"></div>
             </div>
         );
@@ -73,9 +102,9 @@ export function CommunityDetails({
 
             {/* Cover Image */}
             <div className="relative h-48 md:h-64 rounded-t-2xl overflow-hidden bg-gradient-to-br from-[#800517]/20 to-[#600412]/20">
-                {selectedCommunity.coverImageUrl ? (
+                {selectedCommunity.avatarUrl ? (
                     <Image
-                        src={selectedCommunity.coverImageUrl}
+                        src={selectedCommunity.avatarUrl}
                         alt={selectedCommunity.name}
                         fill
                         className="object-cover"
@@ -99,7 +128,7 @@ export function CommunityDetails({
                 <div className="absolute -bottom-12 left-6">
                     <div className="relative">
                         <Avatar className="h-24 w-24 rounded-2xl border-4 border-white shadow-xl">
-                            <AvatarImage src={selectedCommunity.profileImageUrl || undefined} className="object-cover" />
+                            <AvatarImage src={selectedCommunity.avatarUrl || undefined} className="object-cover" />
                             <AvatarFallback className="bg-[#800517] text-white text-3xl">
                                 {selectedCommunity.name?.charAt(0).toUpperCase()}
                             </AvatarFallback>
@@ -226,27 +255,38 @@ export function CommunityDetails({
                         {selectedCommunity.groups && selectedCommunity.groups.length > 0 ? (
                             <div className="">
                                 {selectedCommunity.groups.map((group) => (
-                                    <div key={group.id} className="bg-white rounded-xl border p-2 hover:shadow-md transition-shadow">
+                                    <div key={group.id} className="bg-white rounded-xl border p-2 hover:shadow-md transition-shadow pointer" onClick={()=> window.location.href = "/messages"}>
                                         <div className="flex items-start gap-3">
                                             <Avatar className="h-12 w-12 rounded-lg">
-                                                <AvatarImage src={group.profileImageUrl || undefined} />
+                                                <AvatarImage src={group.avatarUrl || undefined} />
                                                 <AvatarFallback className="bg-[#800517]/10 text-[#800517]">
                                                     {group.name?.charAt(0).toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex-1">
                                                 <h4 className="font-semibold text-slate-900">{group.name}</h4>
-                                                <p className="text-xs md:text-sm text-slate-500 mt-1 line-clamp-2">{group.description}</p>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs text-slate-400">{group.membersCount || 0} members</span>
+                                                    <span className="text-xs text-slate-400">{group.members?.length || 0} members</span>
+                                                        {!checkIsGroupMember(group, currentUserId) ? (
+
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        className="p-2 text-xs rounded-full border-slate-300 text-slate-600"
+                                                        className="p-2 text-xs rounded-full border-[#800517] text-[#800517] hover:bg-[#800517] hover:text-white transition-colors"
+                                                        onClick={() => handleJoinGroup(group.id)}
                                                     >
-                                                        View Group
+                                                        Join Group
                                                     </Button>
-                                                </div>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="p-2 text-xs rounded-full border-green-500 text-green-600"
+                                                            >
+                                                                Joined
+                                                            </Button>
+                                                        )}
+                                                </div>                                                
                                             </div>
                                         </div>
                                     </div>

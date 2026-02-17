@@ -60,17 +60,18 @@ export const ENDPOINTS = {
     REJECT_JOIN_REQUEST: (communityId: string, requestId: string) => `${API_BASE_URL}/communities/${communityId}/join-requests/${requestId}/reject`,
     COMMUNITY_REMOVE_MEMBER: (communityId: string, userId: string) => `${API_BASE_URL}/communities/${communityId}/members/${userId}`,
     COMMUNITY_MEMBER_ROLE: (communityId: string, userId: string) => `${API_BASE_URL}/communities/${communityId}/members/${userId}/role`,
-
+    
     // Groups (Within Communities)
     COMMUNITY_GROUPS: (communityId: string) => `${API_BASE_URL}/communities/${communityId}/groups`,
     COMMUNITY_GROUP_DETAIL: (communityId: string, groupId: string) => `${API_BASE_URL}/communities/${communityId}/groups/${groupId}`,
-
+    
     // Standalone Groups
     GROUPS: `${API_BASE_URL}/groups`,
     GROUPS_WITH_RECENT_MESSAGES: `${API_BASE_URL}/groups/recent-messages`,
     GROUP_DETAIL: (groupId: string) => `${API_BASE_URL}/groups/${groupId}`,
     GROUP_MEMBERS: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/members`,
     GROUP_MEMBER_DETAIL: (groupId: string, memberId: string) => `${API_BASE_URL}/groups/${groupId}/members/${memberId}`,
+    GROUP_JOIN: (id: string) => `${API_BASE_URL}/groups/${id}/join`,
     GROUP_LEAVE: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/leave`,
     GROUP_INVITE_LINK: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/invite-link`,
     GROUP_JOIN_LINK: `${API_BASE_URL}/groups/join-via-link`,

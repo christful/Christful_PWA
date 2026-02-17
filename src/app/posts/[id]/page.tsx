@@ -142,7 +142,7 @@ export default function PostDetailPage() {
         <div className="min-h-screen bg-[#F0F2F5] pb-20 md:pb-0">
             <Header />
 
-            <div className="pt-20 pb-10 max-w-2xl mx-auto px-0 md:px-4">
+            <div className="">
                 {/* Navigation */}
                 <div className="flex items-center px-4 md:px-0 mb-4 sticky top-20 z-10 bg-[#F0F2F5]/90 backdrop-blur pb-2">
                     <button

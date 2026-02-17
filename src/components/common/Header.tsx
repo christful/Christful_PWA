@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import { ENDPOINTS } from "@/lib/api-config";
 import { SideNav } from "@/components/features/SideNav";
+import { Router } from "next/router";
 
 export function Header() {
   const [user, setUser] = useState<{ id?: string; firstName: string; lastName?: string; avatarUrl?: string } | null>(null);
@@ -36,6 +37,7 @@ export function Header() {
       }
     } catch (error) {
       console.error("Failed to fetch notification count:", error);
+      window.location.href = "/auth/login";
     }
   }, []);
 
@@ -55,6 +57,7 @@ export function Header() {
         if (data.avatarUrl) localStorage.setItem("userAvatar", data.avatarUrl);
       } else if (response.status === 401) {
         handleLogout();
+        window.location.href = "/auth/login";
       }
     } catch (error) {
       console.error("Failed to fetch user data:", error);
@@ -75,6 +78,7 @@ export function Header() {
     setIsLoggedIn(false);
     setUser(null);
     window.location.reload();
+    window.location.href = "/auth/login";
   };
 
   return (
