@@ -6,20 +6,23 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Community } from "@/app/communities/types";
 
+import { useRouter, useParams } from "next/navigation";
+
 interface DiscoveryCenterProps {
-    selectedCommunity: Community | null;
     showMobileSidebar: boolean;
 }
 
 export function DiscoveryCenter({
-    selectedCommunity,
     showMobileSidebar,
 }: DiscoveryCenterProps) {
+    const params = useParams();
+    const selectedId = params.id as string;
+
     return (
         <div className={cn(
             "w-full max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[70vh] px-4 relative",
             "md:block",
-            !selectedCommunity || showMobileSidebar ? "block" : "hidden md:block"
+            !selectedId || showMobileSidebar ? "block" : "hidden md:block"
         )}>
             {/* Brick Red Background Pattern */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">

@@ -1,18 +1,27 @@
 "use client";
 
-import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
 
-export default function ProfileIdRedirect() {
-  const params = useParams();
-  const router = useRouter();
-  const userId = params.id as string;
+const ProfileContent = dynamic(() => import("../ProfileContent"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  ),
+});
 
-  useEffect(() => {
-    if (userId) {
-      router.replace(`/profile?userId=${userId}`);
-    }
-  }, [userId, router]);
-
-  return null;
+export default function ProfileDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
+  );
 }

@@ -300,9 +300,9 @@ export default function MessagesContent() {
   );
 
   return (
-    <div className="bg-[#F0F2F5] min-h-screen pt-16 md:pt-20">
+    <div className="bg-[#F0F2F5] h-dvh flex flex-col overflow-hidden pb-16 md:pb-0 pt-16 md:pt-20">
       <Header />
-      
+
       {/* Hidden file inputs */}
       <input
         type="file"
@@ -326,7 +326,7 @@ export default function MessagesContent() {
         onChange={(e) => handleFileChange(e, 'audio')}
       />
 
-      <div className="container mx-auto h-[calc(100vh-8rem)] px-0">
+      <div className="flex-1 min-h-0 w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 h-full">
           {/* Chat List - Left Column (1/3 width on desktop) */}
           <div className={`${mobileView === "chat" ? "hidden md:block" : "block"} md:col-span-1 h-full`}>
@@ -468,9 +468,8 @@ function ChatList({ chats, selectedChat, onSelectChat, isLoading, searchQuery, s
             <div
               key={chat.id}
               onClick={() => onSelectChat(chat)}
-              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 ${
-                selectedChat?.id === chat.id ? "bg-slate-100" : "hover:bg-slate-50"
-              }`}
+              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 ${selectedChat?.id === chat.id ? "bg-slate-100" : "hover:bg-slate-50"
+                }`}
             >
               <div className="relative">
                 <Avatar className="h-14 w-14 flex-shrink-0 border-2 border-white shadow-sm">
@@ -581,10 +580,9 @@ function ActiveChat({
             </Button>
           </div>
 
-          {/* Messages Area - Scrollable (fixed with min-h-0) */}
-          <div 
-            ref={scrollRef} 
-            className="flex-1 overflow-y-auto min-h-0 p-4 bg-[#F7F8FA]"
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto min-h-0 p-4 bg-[#F7F8FA] flex flex-col gap-4 scroll-smooth"
           >
             {messages.length > 0 ? (
               messages.map((msg: any, idx: number) => (

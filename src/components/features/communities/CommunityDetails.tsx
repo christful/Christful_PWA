@@ -18,10 +18,11 @@ import { ENDPOINTS } from "@/lib/api-config";
 
 
 
+import { useRouter, useParams } from "next/navigation";
+
 interface CommunityDetailsProps {
     selectedCommunity: Community | null;
     showMobileSidebar: boolean;
-    handleBackToDiscovery: () => void;
     isLoadingCommunityDetails: boolean;
     handleJoinCommunity: (communityId: string) => void;
     currentUserId: string | null;
@@ -31,33 +32,32 @@ interface CommunityDetailsProps {
     setActiveTab: (tab: string) => void;
 }
 const handleJoinGroup = async (groupId: string) => {
-  try {
-    const token = localStorage.getItem("auth_token");
-    const response = await fetch(ENDPOINTS.GROUP_JOIN(groupId), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch(ENDPOINTS.GROUP_JOIN(groupId), {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
 
-    if (response.ok) {
-      toast.success("Joined group successfully!");
+        if (response.ok) {
+            toast.success("Joined group successfully!");
+        }
+    } catch (error) {
+        console.error("Error joining group:", error);
+        toast.error("Failed to join group");
     }
-  } catch (error) {
-    console.error("Error joining group:", error);
-    toast.error("Failed to join group");
-  }
 };
 
 const checkIsGroupMember = (group: Group, currentUserId: string | null): boolean => {
-  if (!currentUserId || !group.members) return false;
-  return group.members.some(m => m.userId === currentUserId);
+    if (!currentUserId || !group.members) return false;
+    return group.members.some(m => m.userId === currentUserId);
 };
 
 export function CommunityDetails({
     selectedCommunity,
     showMobileSidebar,
-    handleBackToDiscovery,
     isLoadingCommunityDetails,
     handleJoinCommunity,
     currentUserId,
@@ -66,6 +66,10 @@ export function CommunityDetails({
     activeTab,
     setActiveTab,
 }: CommunityDetailsProps) {
+    const router = useRouter();
+    const params = useParams();
+    const selectedId = params.id as string;
+
     if (!selectedCommunity) return null;
 
     const isMember = checkIsMember(selectedCommunity);
@@ -87,12 +91,12 @@ export function CommunityDetails({
         <div className={cn(
             "w-full max-w-4xl mx-auto",
             "block",
-            selectedCommunity && !showMobileSidebar ? "block" : "hidden md:block"
+            selectedId && !showMobileSidebar ? "block" : "hidden md:block"
         )}>
             {/* Mobile Header with Back Button */}
             <div className="md:hidden flex items-center gap-3 p-4 border-b bg-white">
                 <button
-                    onClick={handleBackToDiscovery}
+                    onClick={() => router.push("/communities")}
                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                 >
                     <ArrowLeft className="h-5 w-5 text-slate-700" />
@@ -118,7 +122,7 @@ export function CommunityDetails({
 
                 {/* Desktop Back Button */}
                 <button
-                    onClick={handleBackToDiscovery}
+                    onClick={() => router.push("/communities")}
                     className="hidden md:block absolute top-4 left-4 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg hover:bg-white transition-colors"
                 >
                     <ArrowLeft className="h-5 w-5 text-slate-700" />
@@ -255,7 +259,7 @@ export function CommunityDetails({
                         {selectedCommunity.groups && selectedCommunity.groups.length > 0 ? (
                             <div className="">
                                 {selectedCommunity.groups.map((group) => (
-                                    <div key={group.id} className="bg-white rounded-xl border p-2 hover:shadow-md transition-shadow pointer" onClick={()=> window.location.href = "/messages"}>
+                                    <div key={group.id} className="bg-white rounded-xl border p-2 hover:shadow-md transition-shadow pointer" onClick={() => window.location.href = "/messages"}>
                                         <div className="flex items-start gap-3">
                                             <Avatar className="h-12 w-12 rounded-lg">
                                                 <AvatarImage src={group.avatarUrl || undefined} />
@@ -267,26 +271,26 @@ export function CommunityDetails({
                                                 <h4 className="font-semibold text-slate-900">{group.name}</h4>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-slate-400">{group.members?.length || 0} members</span>
-                                                        {!checkIsGroupMember(group, currentUserId) ? (
+                                                    {!checkIsGroupMember(group, currentUserId) ? (
 
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="p-2 text-xs rounded-full border-[#800517] text-[#800517] hover:bg-[#800517] hover:text-white transition-colors"
-                                                        onClick={() => handleJoinGroup(group.id)}
-                                                    >
-                                                        Join Group
-                                                    </Button>
-                                                        ) : (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="p-2 text-xs rounded-full border-green-500 text-green-600"
-                                                            >
-                                                                Joined
-                                                            </Button>
-                                                        )}
-                                                </div>                                                
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="p-2 text-xs rounded-full border-[#800517] text-[#800517] hover:bg-[#800517] hover:text-white transition-colors"
+                                                            onClick={() => handleJoinGroup(group.id)}
+                                                        >
+                                                            Join Group
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="p-2 text-xs rounded-full border-green-500 text-green-600"
+                                                        >
+                                                            Joined
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
