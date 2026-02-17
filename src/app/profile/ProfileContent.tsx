@@ -55,6 +55,47 @@ export default function ProfileContent() {
     const otherUserId = searchParams?.get("userId");
     const profileEndpoint = otherUserId ? ENDPOINTS.USER_DETAIL(otherUserId) : ENDPOINTS.PROFILE;
     const { data: userData, isLoading: userLoading, mutate: mutateUser } = useApi<UserProfile>(profileEndpoint);
+    const [isFollowing, setIsFollowing] = useState(false);
+
+    useEffect(() => {
+        const checkFollowStatus = async () => {
+            if (!userData?.id || userData.id === localStorage.getItem("userId")) return;
+            try {
+                const token = localStorage.getItem("auth_token");
+                const response = await fetch(ENDPOINTS.FOLLOW_STATUS(userData.id), {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setIsFollowing(data.isFollowing);
+                }
+            } catch (error) {
+                console.error("Failed to fetch follow status:", error);
+            }
+        };
+        checkFollowStatus();
+    }, [userData]);
+
+    const handleFollowToggle = async () => {
+        if (!userData?.id) return;
+        const prev = isFollowing;
+        setIsFollowing(!prev);
+        try {
+            const token = localStorage.getItem("auth_token");
+            const method = prev ? "DELETE" : "POST";
+            const response = await fetch(ENDPOINTS.FOLLOW(userData.id), {
+                method,
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error();
+            toast.success(prev ? "Unfollowed user" : "Following user");
+            mutateUser(); // Refresh follower count
+        } catch (error) {
+            setIsFollowing(prev);
+            toast.error("Failed to update follow status");
+        }
+    };
+
     const { data: postsData, isLoading: postsLoading } = useApi<{ posts: Post[] }>(
         userData?.id ? `${ENDPOINTS.POSTS}?userId=${userData.id}&limit=10` : null
     );
@@ -253,10 +294,17 @@ export default function ProfileContent() {
                                         </>
                                     ) : (
                                         <>
-                                            <Button className="bg-primary text-white font-bold shadow-sm">
-                                                <UserPlus className="h-4 w-4 mr-2" /> Follow
+                                            <Button
+                                                onClick={handleFollowToggle}
+                                                className={isFollowing ? "bg-slate-200 text-slate-800 hover:bg-slate-300 font-bold shadow-sm" : "bg-[#800517] hover:bg-[#A0061D] text-white font-bold px-6 shadow-sm"}
+                                            >
+                                                {isFollowing ? (
+                                                    <>Following</>
+                                                ) : (
+                                                    <><UserPlus className="h-4 w-4 mr-2" /> Follow</>
+                                                )}
                                             </Button>
-                                            <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
+                                            <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm" onClick={() => toast.info("Messaging coming soon")}>
                                                 <Mail className="h-4 w-4 mr-2" /> Message
                                             </Button>
                                         </>

@@ -3,40 +3,36 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Plus, Globe, Shield } from "lucide-react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { Community } from "@/app/communities/types";
+import { useRouter, useParams } from "next/navigation";
 
 interface CommunityListSidebarProps {
-    selectedCommunity: Community | null;
     showMobileSidebar: boolean;
-    handleBackToDiscovery: () => void;
     isLoadingUserCommunities: boolean;
     userCommunities: Community[];
     checkIsMember: (community: Community) => boolean;
     getUserRole: (community: Community) => string | null;
-    handleCommunityClick: (community: Community) => void;
     suggestedCommunities: any[];
     handleJoinCommunity: (communityId: string) => void;
 }
 
 export function CommunityListSidebar({
-    selectedCommunity,
     showMobileSidebar,
-    handleBackToDiscovery,
     isLoadingUserCommunities,
     userCommunities,
     checkIsMember,
     getUserRole,
-    handleCommunityClick,
     suggestedCommunities,
     handleJoinCommunity,
 }: CommunityListSidebarProps) {
+    const router = useRouter();
+    const params = useParams();
+    const selectedId = params.id as string;
+
     return (
         <div className={cn(
             "bg-white md:rounded-xl shadow-sm border h-full flex flex-col overflow-hidden border-x-0 md:border-x",
             "md:block",
-            selectedCommunity && !showMobileSidebar ? "hidden md:block" : "block"
+            selectedId && !showMobileSidebar ? "hidden md:block" : "block"
         )}>
             <div className="p-5 border-b">
                 <div className="flex justify-between items-center mb-2">
@@ -56,13 +52,13 @@ export function CommunityListSidebar({
                         variant="ghost"
                         className={cn(
                             "w-full justify-start gap-3 h-12 rounded-lg",
-                            !selectedCommunity && "bg-slate-100 text-[#800517]"
+                            !selectedId && "bg-slate-100 text-[#800517]"
                         )}
-                        onClick={handleBackToDiscovery}
+                        onClick={() => router.push("/communities")}
                     >
                         <div className={cn(
                             "p-2 rounded-lg",
-                            !selectedCommunity ? "bg-[#800517] text-white" : "bg-slate-100 text-slate-600"
+                            !selectedId ? "bg-[#800517] text-white" : "bg-slate-100 text-slate-600"
                         )}>
                             <Globe size={18} />
                         </div>
@@ -82,14 +78,15 @@ export function CommunityListSidebar({
                     ) : userCommunities.length > 0 ? (
                         userCommunities.map((community) => {
                             const userRole = getUserRole(community);
+                            const isSelected = selectedId === community.id;
 
                             return (
                                 <div
                                     key={community.id}
-                                    onClick={() => handleCommunityClick(community)}
+                                    onClick={() => router.push(`/communities/${community.id}`)}
                                     className={cn(
                                         "flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors group",
-                                        selectedCommunity?.id === community.id
+                                        isSelected
                                             ? "bg-[#800517]/10 border-l-4 border-[#800517]"
                                             : "hover:bg-slate-50"
                                     )}
@@ -104,7 +101,7 @@ export function CommunityListSidebar({
                                         <div className="flex items-center gap-2">
                                             <span className={cn(
                                                 "font-medium block truncate",
-                                                selectedCommunity?.id === community.id ? "text-[#800517]" : "text-slate-700 group-hover:text-[#800517]"
+                                                isSelected ? "text-[#800517]" : "text-slate-700 group-hover:text-[#800517]"
                                             )}>
                                                 {community.name}
                                             </span>
@@ -112,7 +109,7 @@ export function CommunityListSidebar({
                                                 <Shield className="h-3 w-3 text-[#800517]" />
                                             )}
                                         </div>
-                                        
+
                                     </div>
                                 </div>
                             );

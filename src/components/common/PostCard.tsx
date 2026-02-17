@@ -104,12 +104,33 @@ export function PostCard({
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const isOwnPost = currentUserId === authorId;
 
-  // Fetch comments when modal opens
+  // Fetch follow status and comments when modal opens
   useEffect(() => {
     if (isCommentsModalOpen && comments.length === 0) {
       fetchComments();
     }
   }, [isCommentsModalOpen]);
+
+  useEffect(() => {
+    const fetchFollowStatus = async () => {
+      if (!currentUserId || isOwnPost) return;
+      try {
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch(ENDPOINTS.FOLLOW_STATUS(authorId), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          // Assuming backend returns { isFollowing: boolean }
+          setIsFollowing(data.isFollowing);
+        }
+      } catch (error) {
+        console.error("Failed to fetch follow status:", error);
+      }
+    };
+
+    fetchFollowStatus();
+  }, [authorId, currentUserId, isOwnPost]);
 
   const fetchComments = async () => {
     try {
@@ -174,17 +195,26 @@ export function PostCard({
   };
 
   const handleFollow = async () => {
+    if (!currentUserId) {
+      toast.error("Please login to follow users");
+      return;
+    }
     const previous = isFollowing;
     setIsFollowing(!previous);
 
     try {
       const token = localStorage.getItem("auth_token");
-      const endpoint = previous ? ENDPOINTS.FOLLOW(authorId) : ENDPOINTS.FOLLOW(authorId);
       const method = previous ? "DELETE" : "POST";
-      await fetch(endpoint, {
+      const response = await fetch(ENDPOINTS.FOLLOW(authorId), {
         method,
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to update follow status");
+      }
+
+      toast.success(previous ? "Unfollowed user" : "Following user");
     } catch {
       setIsFollowing(previous);
       toast.error(`Failed to ${previous ? 'unfollow' : 'follow'} user`);
@@ -205,12 +235,15 @@ export function PostCard({
         },
         body: JSON.stringify({
           content: commentText,
-          parentCommentId: replyingTo?.id || null,
+          parentId: replyingTo?.id || null, // Changed from parentCommentId to parentId to be more standard
         }),
       });
 
       if (response.ok) {
-        const newComment = await response.json();
+        const result = await response.json();
+        // Backend usually returns the new comment object
+        const newComment = result.comment || result;
+
         // Add new comment to tree
         if (replyingTo) {
           setComments(prev =>
@@ -225,11 +258,14 @@ export function PostCard({
         }
         setCommentText("");
         setReplyingTo(null);
+        toast.success("Comment posted!");
       } else {
-        toast.error("Failed to add comment");
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to add comment");
       }
-    } catch {
-      toast.error("Failed to add comment");
+    } catch (error) {
+      console.error("Comment error:", error);
+      toast.error("An error occurred while posting comment");
     } finally {
       setIsPostingComment(false);
     }

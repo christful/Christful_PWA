@@ -19,7 +19,7 @@ export function PageGrid({
   centerFullWidth = false
 }: PageGridProps) {
   return (
-    <div className="pt-10 pb-5 min-h-screen bg-[#F0F2F5]">
+    <div className="pt-20 pb-5 min-h-screen bg-[#F0F2F5]">
       {/* Container with max-width and responsive gap */}
       <div className={`max-w-[1600px] mx-auto px-0 sm:px-2 md:px-4 lg:px-6 grid gap-4 ${centerFullWidth ? 'grid-cols-1 lg:grid-cols-[350px_1fr]' : 'grid-cols-1 lg:grid-cols-[350px_minmax(500px,1fr)] xl:grid-cols-[400px_minmax(600px,1fr)_400px]'}`}>
 

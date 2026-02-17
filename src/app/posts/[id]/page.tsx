@@ -18,6 +18,7 @@ interface Comment {
     id: string;
     content: string;
     author: {
+        id: string;
         firstName: string;
         lastName: string;
         avatarUrl: string;
@@ -32,6 +33,7 @@ interface Post {
     content: string;
     postType: 'image' | 'video' | 'audio' | 'text';
     author: {
+        id: string;
         firstName: string;
         lastName: string;
         avatarUrl: string;
@@ -52,6 +54,7 @@ export default function PostDetailPage() {
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentInput, setCommentInput] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+    const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
         if (postId) {
@@ -75,6 +78,15 @@ export default function PostDetailPage() {
             if (postRes.ok) {
                 const postData = await postRes.json();
                 setPost(postData);
+
+                // Fetch follow status
+                const followRes = await fetch(ENDPOINTS.FOLLOW_STATUS(postData.author.id), {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (followRes.ok) {
+                    const followData = await followRes.json();
+                    setIsFollowing(followData.isFollowing);
+                }
             } else {
                 toast.error("Post not found");
                 router.push("/home");
@@ -83,7 +95,7 @@ export default function PostDetailPage() {
 
             if (commentsRes.ok) {
                 const commentsData = await commentsRes.json();
-                setComments(commentsData.comments || []);
+                setComments(commentsData.comments || commentsData || []);
             }
         } catch (error) {
             console.error("Error fetching post details:", error);
@@ -169,9 +181,36 @@ export default function PostDetailPage() {
                                 {new Date(post.createdAt).toLocaleDateString()}
                             </p>
                         </div>
-                        <button className="text-gray-500 hover:bg-gray-100 p-2 rounded-full">
-                            <MoreHorizontal className="h-5 w-5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {post.author.id !== localStorage.getItem("userId") && (
+                                <Button
+                                    variant={isFollowing ? "secondary" : "default"}
+                                    size="sm"
+                                    onClick={async () => {
+                                        try {
+                                            const token = localStorage.getItem("auth_token");
+                                            const method = isFollowing ? "DELETE" : "POST";
+                                            const res = await fetch(ENDPOINTS.FOLLOW(post.author.id), {
+                                                method,
+                                                headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            if (res.ok) {
+                                                setIsFollowing(!isFollowing);
+                                                toast.success(isFollowing ? "Unfollowed" : "Following");
+                                            }
+                                        } catch (e) {
+                                            toast.error("Action failed");
+                                        }
+                                    }}
+                                    className="h-8 rounded-full text-xs font-bold"
+                                >
+                                    {isFollowing ? "Following" : "Follow"}
+                                </Button>
+                            )}
+                            <button className="text-gray-500 hover:bg-gray-100 p-2 rounded-full">
+                                <MoreHorizontal className="h-5 w-5" />
+                            </button>
+                        </div>
                     </CardHeader>
 
                     {/* Post Content */}
