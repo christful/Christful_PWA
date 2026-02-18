@@ -206,19 +206,19 @@ export function CommunityDetails({
                     <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent overflow-x-auto">
                         <TabsTrigger
                             value="about"
-                            className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[#800517] data-[state=active]:text-[#800517] px-4 py-2 text-sm"
+                            className="cursor-pointer rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[#800517] data-[state=active]:text-[#800517] px-4 py-2 text-sm"
                         >
                             About
                         </TabsTrigger>
                         <TabsTrigger
                             value="groups"
-                            className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[#800517] data-[state=active]:text-[#800517] px-4 py-2 text-sm"
+                            className="cursor-pointer rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[#800517] data-[state=active]:text-[#800517] px-4 py-2 text-sm"
                         >
                             Groups ({selectedCommunity.groups?.length || 0})
                         </TabsTrigger>
                         <TabsTrigger
                             value="members"
-                            className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[#800517] data-[state=active]:text-[#800517] px-4 py-2 text-sm"
+                            className="cursor-pointer rounded-none data-[state=active]:border-b-2 data-[state=active]:border-[#800517] data-[state=active]:text-[#800517] px-4 py-2 text-sm"
                         >
                             Members ({selectedCommunity.memberships?.length || 0})
                         </TabsTrigger>
@@ -259,7 +259,8 @@ export function CommunityDetails({
                         {selectedCommunity.groups && selectedCommunity.groups.length > 0 ? (
                             <div className="">
                                 {selectedCommunity.groups.map((group) => (
-                                    <div key={group.id} className="bg-white rounded-xl border p-2 hover:shadow-md transition-shadow pointer" onClick={() => window.location.href = "/messages"}>
+                                    <div key={group.id} className="bg-white rounded-xl cursor-pointer border p-2 hover:shadow-md transition-shadow pointer" 
+                                    onClick={() => window.location.href = `/messages/${group.id}`}>
                                         <div className="flex items-start gap-3">
                                             <Avatar className="h-12 w-12 rounded-lg">
                                                 <AvatarImage src={group.avatarUrl || undefined} />

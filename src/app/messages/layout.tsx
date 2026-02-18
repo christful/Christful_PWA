@@ -104,7 +104,7 @@ export default function MessagesLayout({
                     </div>
 
                     {/* Chat Content - Right Column */}
-                    <div className={`${!selectedId ? "hidden md:block" : "block"} md:col-span-2 h-full`}>
+                    <div className={`${!selectedId ? "hidden md:block" : "block"} md:col-span-2 min-h-0 overflow-auto`}>
                         {children}
                     </div>
                 </div>

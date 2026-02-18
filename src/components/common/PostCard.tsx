@@ -366,21 +366,22 @@ export function PostCard({
 
       case "video":
         return videoUrl && (
-          <div className={cn(
-            mediaClasses,
-            "aspect-video",
-            "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full",
-            "border-0"
-          )}>
-            <video
-              src={videoUrl}
-              className="w-full h-full object-cover"
-              controls
-              playsInline
-              preload="metadata"
-            />
-          </div>
-        );
+          <div
+  className={cn(
+    "relative w-full bg-black overflow-hidden",
+    "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full"
+  )}
+>
+  <video
+    src={videoUrl}
+    className="w-full h-90 object-cover"
+    controls
+    playsInline
+    preload="metadata"
+  />
+</div>
+
+);
 
       case "audio":
         return audioUrl && (
@@ -419,7 +420,7 @@ export function PostCard({
                   href={`/profile/${authorId}`}
                   className="hover:text-primary transition-colors"
                 >
-                  <span className="text-base font-semibold leading-none block">
+                  <span className=" font-semibold leading-none block text-[12px]">
                     {authorName}
                   </span>
                 </Link>

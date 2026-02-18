@@ -73,8 +73,8 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   return (
     <div className="flex justify-center w-full md:px-0">
       <div className="w-full max-w-[500px]">
-        <div className="flex justify-center sticky top-20 z-40 bg-[#FBFDFF]/80 backdrop-blur-sm py-3 -mx-4 px-4 md:mx-0 md:px-0">
-          <div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex justify-center sticky top-20 z-40 bg-[#FBFDFF]/80 backdrop-blur-sm py-3  px-4 md:mx-0 md:px-0">
+          <div className="flex gap-2 sm:gap-4 overflow-x-hidden no-scrollbar pb-1">
             <Badge
               variant={activeTab === "All" ? "default" : "secondary"}
               className="rounded-[5px] px-4 py-1.5 cursor-pointer transition-all whitespace-nowrap"
