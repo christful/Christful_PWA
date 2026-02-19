@@ -21,6 +21,7 @@ interface Community {
 
 export function CommunityPanel() {
   const [userCommunities, setUserCommunities] = useState<Community[]>([]);
+  const [userSuggestedCommunities, setUserSuggestedCommunities] = useState<Community[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Dummy suggested communities
@@ -32,6 +33,7 @@ export function CommunityPanel() {
 
   useEffect(() => {
     fetchCommunities();
+    fetchSuggestedCommunities();
   }, []);
 
   const fetchCommunities = async () => {
@@ -74,6 +76,38 @@ export function CommunityPanel() {
       setIsLoading(false);
     }
   };
+  const fetchSuggestedCommunities = async () => {
+  try {
+    setIsLoading(true);
+    const token = localStorage.getItem("auth_token");
+    const response = await fetch(`${ENDPOINTS.COMMUNITY_SUGGESTED}?page=1&limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const payload = await response.json();
+      // Expected shape: { communities: [...] }
+      const rawSuggestedCommunities = payload?.communities || [];
+      
+      // Map to your local Community shape
+      const mapped = rawSuggestedCommunities.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        avatarUrl: c.avatarUrl || c.creator?.avatarUrl || null,
+        creatorId: c.createdBy || c.creator?.id || null,
+        isMember: false, // suggested are never members
+      }));
+
+      setUserSuggestedCommunities(mapped.slice(0, 10));
+    } else {
+      console.error("Failed to fetch suggested communities:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching suggested communities:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleJoinCommunity = (id: string) => {
     toast.success("Request sent to join!");
@@ -101,15 +135,15 @@ export function CommunityPanel() {
           <span className="text-[10px] font-bold text-[#800517] uppercase tracking-wider cursor-pointer hover:underline">See All</span>
         </div>
         <div className="space-y-4">
-          {suggestedCommunities.map((comm) => (
+          {userSuggestedCommunities.map((comm) => (
             <div key={comm.id} className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={comm.avatarUrl} className="object-cover" />
+                <AvatarImage src={comm.avatarUrl ?? undefined} className="object-cover" />
                 <AvatarFallback>{comm.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-800 truncate">{comm.name}</p>
-                <p className="text-[10px] text-slate-500">{comm.members} members</p>
+                {/* <p className="text-[10px] text-slate-500">{comm.membership} members</p> */}
               </div>
               <Button
                 size="sm"
