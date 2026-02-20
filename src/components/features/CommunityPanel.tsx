@@ -110,7 +110,25 @@ export function CommunityPanel() {
 };
 
   const handleJoinCommunity = (id: string) => {
-    toast.success("Request sent to join!");
+    try{
+      const token = localStorage.getItem("auth_token");
+      fetch(ENDPOINTS.COMMUNITY_JOIN(id), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }).then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to join community");
+        }
+        // Optionally, you could refresh the communities list here
+        toast.success("Request sent to join!");
+        fetchCommunities();
+      });
+    } catch {
+      toast.error("Error sending join request");
+    }
   };
 
   return (
