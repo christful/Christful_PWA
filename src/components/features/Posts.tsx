@@ -6,6 +6,7 @@ import { PostCard } from "@/components/common/PostCard";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
+// import { StoriesStrip } from "./StoriesStrip";
 
 interface Post {
   id: string;
@@ -71,39 +72,40 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   });
 
   return (
-    <div className="flex justify-center w-full md:px-0">
-      <div className="w-full max-w-[500px]">
-        <div className="flex justify-center sticky top-20 z-40 bg-[#FBFDFF]/80 backdrop-blur-sm py-3  px-4 md:mx-0 md:px-0">
-          <div className="flex gap-2 sm:gap-4 overflow-x-hidden no-scrollbar pb-1">
+    <div className="flex justify-center w-full md:px-0 scroll-smooth">
+      <div className="w-full max-w-[500px] md:max-w-[600px] lg:max-w-[650px]">
+        {/* User requested removal of story section */}
+        <div className="flex justify-center sticky top-[60px] md:top-[80px] z-40 bg-[#FBFDFF]/80 dark:bg-black/80 backdrop-blur-md py-3 px-4 md:mx-0 md:px-0 border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+          <div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-1 w-full justify-start md:justify-center">
             <Badge
               variant={activeTab === "All" ? "default" : "secondary"}
-              className="rounded-[5px] px-4 py-1.5 cursor-pointer transition-all whitespace-nowrap"
+              className={`rounded-full px-5 py-2 cursor-pointer transition-all duration-300 whitespace-nowrap active:scale-95 ${activeTab === "All" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
               onClick={() => setActiveTab("All")}
             >
               All
             </Badge>
             <Badge
               variant={activeTab === "Video" ? "default" : "secondary"}
-              className="rounded-[5px] px-4 py-1.5 cursor-pointer transition-all flex gap-1.5 items-center whitespace-nowrap"
+              className={`rounded-full px-5 py-2 cursor-pointer transition-all duration-300 flex gap-2 items-center whitespace-nowrap active:scale-95 ${activeTab === "Video" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
               onClick={() => setActiveTab("Video")}
             >
-              <FileVideo2 className="h-3.5 w-3.5" />
+              <FileVideo2 className="h-4 w-4" />
               Video
             </Badge>
             <Badge
               variant={activeTab === "Audio" ? "default" : "secondary"}
-              className="rounded-[5px] px-4 py-1.5 cursor-pointer transition-all flex gap-1.5 items-center whitespace-nowrap"
+              className={`rounded-full px-5 py-2 cursor-pointer transition-all duration-300 flex gap-2 items-center whitespace-nowrap active:scale-95 ${activeTab === "Audio" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
               onClick={() => setActiveTab("Audio")}
             >
-              <AudioLines className="h-3.5 w-3.5" />
+              <AudioLines className="h-4 w-4" />
               Audio
             </Badge>
             <Badge
               variant={activeTab === "Text" ? "default" : "secondary"}
-              className="rounded-[5px] px-4 py-1.5 cursor-pointer transition-all flex gap-1.5 items-center whitespace-nowrap"
+              className={`rounded-full px-5 py-2 cursor-pointer transition-all duration-300 flex gap-2 items-center whitespace-nowrap active:scale-95 ${activeTab === "Text" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
               onClick={() => setActiveTab("Text")}
             >
-              <TextIcon className="h-3.5 w-3.5" />
+              <TextIcon className="h-4 w-4" />
               Text
             </Badge>
           </div>

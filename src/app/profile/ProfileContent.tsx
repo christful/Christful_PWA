@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { Edit2, Upload, Plus, UserPlus, Mail, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { PostCard } from "@/components/common/PostCard";
 import { useApi } from "@/hooks/use-api";
 
@@ -221,258 +222,164 @@ export default function ProfileContent() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F0F2F5] pb-20 md:pb-0">
+        <div className="min-h-screen bg-white dark:bg-black pb-20 md:pb-0 transition-colors duration-300">
             <Header />
 
-            <main className="pt-14">
-                {/* Profile Header Section - Facebook Style */}
-                <div className="bg-white shadow-sm border-b">
-                    <div className="max-w-[1095px] mx-auto">
-                        {/* Cover Photo */}
-                        <div className="relative h-[200px] md:h-[350px] w-full bg-gradient-to-r from-slate-200 to-slate-300 md:rounded-b-xl overflow-hidden group">
-                            {/* Optional: Add cover photo image here if available */}
-                            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            {isOwnProfile && (
-                                <button className="absolute bottom-4 right-4 bg-white hover:bg-slate-50 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm shadow-md flex items-center gap-2 transition-all">
-                                    <Upload size={18} />
-                                    <span>Add cover photo</span>
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Profile Info Area */}
-                        <div className="px-4 pb-4">
-                            <div className="flex flex-col md:flex-row items-center md:items-end gap-4 -mt-12 md:-mt-8 mb-4">
-                                {/* Avatar */}
-                                <div className="relative">
-                                    <Avatar className="h-40 w-40 border-4 border-white shadow-xl ring-1 ring-black/5">
-                                        {user?.avatarUrl ? (
-                                            <AvatarImage src={user.avatarUrl} alt={user.firstName} />
-                                        ) : null}
-                                        <AvatarFallback className="text-5xl font-bold bg-[#800517] text-white">
-                                            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    {isOwnProfile && (
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="absolute bottom-2 right-2 bg-slate-100 p-2 rounded-full hover:bg-slate-200 shadow-md ring-2 ring-white transition-transform hover:scale-110"
-                                        >
-                                            <Upload size={20} className="text-slate-700" />
-                                        </button>
-                                    )}
-                                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploading} className="hidden" />
-                                </div>
-
-                                {/* Name and Stats */}
-                                <div className="flex-1 text-center md:text-left pb-2">
-                                    <h1 className="text-3xl font-bold text-slate-900 mb-1">
-                                        {user?.firstName} {user?.lastName}
-                                    </h1>
-                                    <p className="text-slate-500 font-semibold mb-2">{user?.followers?.length || 0} followers • {user?.following?.length || 0} following</p>
-
-                                    {/* Follower Avatars (Dummy) */}
-                                    <div className="flex justify-center md:justify-start -space-x-2">
-                                        {[1, 2, 3, 4, 5].map(i => (
-                                            <Avatar key={i} className="h-8 w-8 border-2 border-white">
-                                                <AvatarFallback className="text-[10px] bg-slate-200 text-slate-600">F</AvatarFallback>
-                                            </Avatar>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex gap-2 pb-2">
-                                    {isOwnProfile ? (
-                                        <>
-                                            <Button className="bg-[#800517] hover:bg-[#A0061D] text-white font-bold px-6 shadow-sm">
-                                                <Plus className="h-4 w-4 mr-2" /> Add to Story
-                                            </Button>
-                                            <Button variant="secondary" onClick={() => setIsEditMode(true)} className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
-                                                <Edit2 className="h-4 w-4 mr-2" /> Edit Profile
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Button
-                                                onClick={handleFollowToggle}
-                                                className={isFollowing ? "bg-slate-200 text-slate-800 hover:bg-slate-300 font-bold shadow-sm" : "bg-[#800517] hover:bg-[#A0061D] text-white font-bold px-6 shadow-sm"}
-                                            >
-                                                {isFollowing ? (
-                                                    <>Following</>
-                                                ) : (
-                                                    <><UserPlus className="h-4 w-4 mr-2" /> Follow</>
-                                                )}
-                                            </Button>
-                                            <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm" onClick={() => toast.info("Messaging coming soon")}>
-                                                <Mail className="h-4 w-4 mr-2" /> Message
-                                            </Button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Profile Divider */}
-                            <div className="border-t"></div>
-
-                            {/* Profile Tabs (Dummy UI) */}
-                            <div className="flex gap-1 overflow-x-auto no-scrollbar py-1">
-                                {['Posts', 'About', 'Friends', 'Photos', 'Videos', 'Reels'].map((tab, i) => (
-                                    <button key={tab} className={`px-4 py-3 text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${i === 0 ? "text-[#800517] border-b-4 border-[#800517] rounded-none" : "text-slate-500 hover:bg-slate-100"}`}>
-                                        {tab}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+            <main className="pt-20 max-w-4xl mx-auto px-4 sm:px-6">
+                {/* Profile Header Section - Instagram Style */}
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 py-4">
+                    {/* Avatar (Left) */}
+                    <div className="relative shrink-0">
+                        <Avatar className="h-24 w-24 sm:h-36 sm:w-36 border-2 border-gray-100 dark:border-gray-800 shadow-sm ring-2 ring-transparent transition-all duration-300 hover:ring-primary/20">
+                            {user?.avatarUrl ? (
+                                <AvatarImage src={user.avatarUrl} alt={user.firstName} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="text-3xl sm:text-5xl font-light bg-gradient-to-tr from-primary/80 to-primary text-white">
+                                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                            </AvatarFallback>
+                        </Avatar>
+                        {isOwnProfile && (
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 bg-primary p-2 flex items-center justify-center rounded-full text-white shadow-lg ring-4 ring-white dark:ring-black transition-transform duration-300 hover:scale-110 active:scale-95"
+                            >
+                                <Plus size={16} strokeWidth={3} />
+                            </button>
+                        )}
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploading} className="hidden" />
                     </div>
-                </div>
 
-                {/* Content Section */}
-                <div className="max-w-[1095px] mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-[40%_60%] gap-4">
+                    {/* Info & Stats (Right) */}
+                    <div className="flex-1 w-full text-center md:text-left flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row items-center md:items-start gap-4 sm:gap-6 justify-center md:justify-start">
+                            <h1 className="text-xl sm:text-2xl font-medium text-gray-900 dark:text-gray-100">
+                                {user?.firstName} {user?.lastName} <span className="text-sm font-normal text-gray-500 block sm:inline">({user?.email})</span>
+                            </h1>
 
-                    {/* Left Column: Intro & Info */}
-                    <div className="space-y-4">
-                        <Card className="shadow-sm border-none bg-white p-4 rounded-none md:rounded-xl">
-                            <h3 className="text-xl font-bold text-slate-900 mb-4">Intro</h3>
-                            <div className="space-y-4">
-                                {isEditMode ? (
-                                    <div className="space-y-3">
-                                        <Textarea
-                                            value={editData.bio}
-                                            onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
-                                            className="bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-[#800517] resize-none min-h-[100px] text-center"
-                                            placeholder="Describe who you are..."
-                                        />
-                                        <div className="flex gap-2">
-                                            <Button onClick={handleSaveBio} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold" disabled={uploading}>Save</Button>
-                                            <Button onClick={() => setIsEditMode(false)} variant="ghost" className="flex-1 font-bold" disabled={uploading}>Cancel</Button>
-                                        </div>
-                                    </div>
+                            <div className="flex gap-2">
+                                {isOwnProfile ? (
+                                    <>
+                                        <Button variant="secondary" onClick={() => setIsEditMode(true)} className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold h-8 rounded-lg px-4 transition-all duration-300 active:scale-95">
+                                            Edit profile
+                                        </Button>
+                                        <Button variant="secondary" className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold h-8 rounded-lg px-4 transition-all duration-300 active:scale-95">
+                                            View archive
+                                        </Button>
+                                    </>
                                 ) : (
                                     <>
-                                        <p className="text-center text-slate-900 font-medium">{user.bio || "No bio yet."}</p>
-                                        {isOwnProfile && (
-                                            <Button onClick={() => setIsEditMode(true)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold border-none">
-                                                Edit bio
-                                            </Button>
-                                        )}
+                                        <Button
+                                            onClick={handleFollowToggle}
+                                            className={cn(
+                                                "h-8 rounded-lg px-6 font-semibold transition-all duration-300 active:scale-95 shadow-sm",
+                                                isFollowing ? "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800" : "bg-primary text-white hover:bg-primary/90"
+                                            )}
+                                        >
+                                            {isFollowing ? "Following" : "Follow"}
+                                        </Button>
+                                        <Button variant="secondary" className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold h-8 rounded-lg px-4 transition-all duration-300 active:scale-95">
+                                            Message
+                                        </Button>
                                     </>
                                 )}
-
-                                <div className="space-y-3 pt-2">
-                                    <div className="flex items-center gap-3 text-slate-800">
-                                        <Mail className="h-5 w-5 text-slate-400" />
-                                        <span className="text-sm">Email: <span className="font-bold">{user.email}</span></span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-slate-800">
-                                        <Calendar className="h-5 w-5 text-slate-400" />
-                                        <span className="text-sm">Joined <span className="font-bold">January 2024</span></span>
-                                    </div>
-                                </div>
-
-                                {isOwnProfile && (
-                                    <Button className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold border-none">
-                                        Edit details
-                                    </Button>
-                                )}
-                            </div>
-                        </Card>
-
-                        <Card className="shadow-sm border-none bg-white p-4 rounded-none md:rounded-xl">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-xl font-bold text-slate-900">Photos</h3>
-                                <button className="text-[#800517] hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium">See all photos</button>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 overflow-hidden rounded-xl">
-                                {[1, 2, 3, 4, 5, 6].map(i => (
-                                    <div key={i} className="aspect-square bg-slate-100 animate-pulse rounded-md"></div>
-                                ))}
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Right Column: Posts */}
-                    <div className="space-y-4">
-                        {/* Create Post Card (Dummy) */}
-                        {isOwnProfile && (
-                            <Card className="shadow-sm border-none bg-white p-4 rounded-none md:rounded-xl">
-                                <div className="flex gap-3 mb-3">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarImage src={user.avatarUrl} />
-                                        <AvatarFallback>{user.firstName[0]}</AvatarFallback>
-                                    </Avatar>
-                                    <button className="flex-1 bg-slate-100 hover:bg-slate-200 rounded-full text-left px-4 text-slate-500 text-sm">
-                                        What's on your mind, {user.firstName}?
-                                    </button>
-                                </div>
-                                <div className="flex border-t pt-2">
-                                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-50 rounded-lg text-slate-600 font-bold text-sm">
-                                        <Upload size={20} className="text-red-500" /> Live Video
-                                    </button>
-                                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-50 rounded-lg text-slate-600 font-bold text-sm">
-                                        <Upload size={20} className="text-green-500" /> Photo/video
-                                    </button>
-                                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-50 rounded-lg text-slate-600 font-bold text-sm">
-                                        <Upload size={20} className="text-yellow-500" /> Life Event
-                                    </button>
-                                </div>
-                            </Card>
-                        )}
-
-                        {/* Posts Header */}
-                        <div className="flex justify-between items-center px-1">
-                            <h3 className="text-xl font-bold text-slate-900">Posts</h3>
-                            <div className="flex gap-2">
-                                <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
-                                    Filters
-                                </Button>
-                                <Button variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold shadow-sm">
-                                    Manage posts
-                                </Button>
                             </div>
                         </div>
 
-                        {/* Actual Posts */}
-                        <div className="space-y-4">
-                            {userPosts.length > 0 ? (
-                                userPosts.map((post) => {
-                                    const getPostType = (post: Post): 'image' | 'video' | 'audio' | 'text' => {
-                                        if (post.videoUrl) return 'video';
-                                        if (post.audioUrl) return 'audio';
-                                        if (post.imageUrl) return 'image';
-                                        return 'text';
-                                    };
-                                    const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-                                    const userHasLiked = post.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
+                        {/* Stats - Horizontal */}
+                        <div className="flex justify-center md:justify-start gap-8 sm:gap-10 py-2 sm:py-0 border-y sm:border-y-0 border-gray-100 dark:border-gray-800/50">
+                            <div className="text-center sm:text-left">
+                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{userPosts.length}</span>
+                                <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">posts</span>
+                            </div>
+                            <div className="text-center sm:text-left cursor-pointer transition-all duration-300 hover:opacity-70">
+                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{user?.followers?.length || 0}</span>
+                                <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">followers</span>
+                            </div>
+                            <div className="text-center sm:text-left cursor-pointer transition-all duration-300 hover:opacity-70">
+                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{user?.following?.length || 0}</span>
+                                <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">following</span>
+                            </div>
+                        </div>
 
-                                    return (
-                                        <PostCard
-                                            key={post.id}
-                                            postId={post.id}
-                                            postType={getPostType(post)}
-                                            authorId={post.author.id}
-                                            authorName={`${post.author.firstName} ${post.author.lastName}`}
-                                            authorAvatar={post.author.avatarUrl || ''}
-                                            date={post.createdAt || new Date().toISOString()}
-                                            textContent={post.content}
-                                            imageUrl={post.imageUrl}
-                                            videoUrl={post.videoUrl}
-                                            audioUrl={post.audioUrl}
-                                            likesCount={post.likes?.length || 0}
-                                            commentsCount={post.comments?.length || 0}
-                                            isLiked={userHasLiked}
-                                        />
-                                    );
-                                })
+                        {/* Bio segment */}
+                        <div className="mt-2 text-sm text-gray-900 dark:text-gray-100 leading-relaxed text-center md:text-left max-w-sm">
+                            {isEditMode ? (
+                                <div className="space-y-3">
+                                    <Textarea
+                                        value={editData.bio}
+                                        onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                                        className="bg-gray-50 dark:bg-gray-900 border-none focus-visible:ring-1 focus-visible:ring-primary resize-none min-h-[80px] text-center md:text-left"
+                                        placeholder="Add a bio..."
+                                    />
+                                    <div className="flex gap-2">
+                                        <Button onClick={handleSaveBio} className="flex-1 bg-primary text-white h-8 text-xs font-semibold" disabled={uploading}>Save</Button>
+                                        <Button onClick={() => setIsEditMode(false)} variant="ghost" className="flex-1 h-8 text-xs font-semibold" disabled={uploading}>Cancel</Button>
+                                    </div>
+                                </div>
                             ) : (
-                                <Card className="text-center py-12">
-                                    <p className="text-muted-foreground">No posts yet</p>
-                                </Card>
+                                <p className="whitespace-pre-wrap">{user.bio || "No bio yet."}</p>
                             )}
                         </div>
                     </div>
                 </div>
 
+                {/* Profile Tabs */}
+                <div className="border-t border-gray-200 dark:border-gray-800 flex justify-center -mt-[1px]">
+                    <div className="flex gap-12 sm:gap-16">
+                        {['POSTS', 'REELS', 'SAVED'].map((tab, i) => (
+                            <button
+                                key={tab}
+                                className={cn(
+                                    "py-4 text-xs font-bold tracking-widest transition-all duration-300 flex items-center gap-2 outline-none",
+                                    i === 0
+                                        ? "text-gray-900 dark:text-white border-t-2 border-gray-900 dark:border-white"
+                                        : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 border-t-2 border-transparent"
+                                )}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Grid Content */}
+                <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-1 sm:mt-4">
+                    {userPosts.length > 0 ? (
+                        userPosts.map((post) => (
+                            <div key={post.id} className="aspect-square bg-gray-100 dark:bg-gray-900 relative group overflow-hidden cursor-pointer sm:rounded-sm">
+                                {post.imageUrl ? (
+                                    <img src={post.imageUrl} alt="post" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                ) : post.videoUrl ? (
+                                    <video src={post.videoUrl} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium line-clamp-4">{post.content}</p>
+                                    </div>
+                                )}
+
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white font-bold">
+                                    <div className="flex items-center gap-1.5 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                        <svg fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                                        <span>{post.likes?.length || 0}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75">
+                                        <svg fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" /></svg>
+                                        <span>{post.comments?.length || 0}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="col-span-3 py-20 text-center flex flex-col items-center justify-center gap-4">
+                            <div className="h-16 w-16 border-2 border-gray-900 dark:border-white rounded-full flex items-center justify-center">
+                                <Plus size={32} />
+                            </div>
+                            <h2 className="text-3xl font-light text-gray-900 dark:text-white">Share Photos</h2>
+                            <p className="text-sm font-medium text-gray-500">When you share photos, they will appear on your profile.</p>
+                            {isOwnProfile && <span className="text-primary font-bold text-sm cursor-pointer hover:underline">Share your first photo</span>}
+                        </div>
+                    )}
+                </div>
             </main>
 
             <BottomNav />

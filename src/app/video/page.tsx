@@ -223,7 +223,7 @@ export default function VideoPage() {
                             />
 
                             {/* Dark overlay for better text contrast */}
-                            <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10 pointer-events-none" />
 
                             {/* Play/Pause icon overlay */}
                             {iconStates[reel.id]?.show && (
@@ -239,9 +239,9 @@ export default function VideoPage() {
                             )}
 
                             {/* Right Actions Overlay */}
-                            <div className="absolute right-4 bottom-12 flex flex-col gap-5 items-center z-10 pointer-events-auto">
+                            <div className="absolute right-3 bottom-10 flex flex-col gap-6 items-center z-10 pointer-events-auto">
                                 <div className="flex flex-col items-center">
-                                    <div className="h-12 w-12 rounded-full border-2 border-white overflow-hidden shadow-lg relative">
+                                    <div className="h-10 w-10 rounded-full border-[1.5px] border-white overflow-hidden shadow-lg relative">
                                         <Avatar className="h-full w-full">
                                             {reel.authorAvatar ? (
                                                 <AvatarImage src={reel.authorAvatar} />
@@ -251,56 +251,56 @@ export default function VideoPage() {
                                             </AvatarFallback>
                                         </Avatar>
                                     </div>
-                                    <div className="bg-[#800517] rounded-full p-1 -mt-3 z-10 shadow-md">
-                                        <Plus size={12} className="text-white fill-white" />
+                                    <div className="bg-[#800517] rounded-full p-[2px] -mt-2.5 z-10 shadow-md border-2 border-black/80">
+                                        <Plus size={10} className="text-white fill-white" />
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col items-center">
-                                    <Button size="icon" variant="ghost" className="h-12 w-12 rounded-full hover:bg-white/10 text-white">
-                                        <Heart className="h-7 w-7" />
-                                    </Button>
-                                    <span className="text-[10px] font-bold">{reel.likes}</span>
+                                <div className="flex flex-col items-center group">
+                                    <button className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                        <Heart size={28} strokeWidth={2.5} />
+                                    </button>
+                                    <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.likes}</span>
                                 </div>
 
-                                <div className="flex flex-col items-center">
-                                    <Button size="icon" variant="ghost" className="h-12 w-12 rounded-full hover:bg-white/10 text-white">
-                                        <MessageCircle className="h-7 w-7" />
-                                    </Button>
-                                    <span className="text-[10px] font-bold">{reel.comments}</span>
+                                <div className="flex flex-col items-center group">
+                                    <button className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                        <MessageCircle size={28} strokeWidth={2.5} />
+                                    </button>
+                                    <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.comments}</span>
                                 </div>
 
-                                <div className="flex flex-col items-center">
-                                    <Button size="icon" variant="ghost" className="h-12 w-12 rounded-full hover:bg-white/10 text-white">
-                                        <Share2 className="h-7 w-7" />
-                                    </Button>
-                                    <span className="text-[10px] font-bold">{reel.shares}</span>
+                                <div className="flex flex-col items-center group">
+                                    <button className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                        <Share2 size={28} strokeWidth={2.5} />
+                                    </button>
+                                    <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.shares}</span>
                                 </div>
 
-                                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full hover:bg-white/10 text-white">
-                                    <MoreHorizontal className="h-6 w-6" />
-                                </Button>
+                                <button className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mb-2">
+                                    <MoreHorizontal size={26} strokeWidth={3} />
+                                </button>
 
-                                <div className="h-10 w-10 rounded-full bg-slate-800/80 border border-white/20 flex items-center justify-center animate-spin-slow">
-                                    <Music2 className="h-5 w-5" />
+                                <div className="h-8 w-8 rounded-md bg-white border-2 border-white/80 flex items-center justify-center overflow-hidden shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                                    <img src={reel.authorAvatar || "https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=100&h=100&fit=crop"} alt="audio cover" className="w-full h-full object-cover animate-spin-slow" />
                                 </div>
                             </div>
 
                             {/* Bottom Info Overlay */}
-                            <div className="absolute left-6 bottom-8 right-20 z-10 pointer-events-none">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <h3 className="font-bold text-lg hover:underline cursor-pointer pointer-events-auto">{reel.author}</h3>
-                                    <Button size="sm" className="h-7 bg-white/20 hover:bg-white/30 text-white border border-white/20 text-xs rounded-full px-4 pointer-events-auto">
+                            <div className="absolute left-4 bottom-4 right-16 z-10 pointer-events-none flex flex-col justify-end">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="font-semibold text-[15px] cursor-pointer pointer-events-auto drop-shadow-md hover:underline">{reel.author}</h3>
+                                    <Button size="sm" className="h-6 bg-transparent hover:bg-white/10 text-white border border-white text-xs rounded-lg px-3 font-semibold pointer-events-auto transition-all duration-300 active:scale-95 drop-shadow-md">
                                         Follow
                                     </Button>
                                 </div>
-                                <p className="text-sm line-clamp-2 mb-4 text-white/90 leading-relaxed max-w-sm">
+                                <p className="text-[14px] line-clamp-2 mb-3 text-white leading-relaxed max-w-sm drop-shadow-md font-medium">
                                     {reel.description}
                                 </p>
-                                <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm w-fit p-1.5 px-3 rounded-full border border-white/10">
-                                    <Music2 className="h-3 w-3" />
-                                    <div className="overflow-hidden whitespace-nowrap w-24">
-                                        <p className="text-[11px] font-medium animate-marquee inline-block">{reel.audio}</p>
+                                <div className="flex items-center gap-2 pointer-events-auto cursor-pointer drop-shadow-md">
+                                    <Music2 size={13} className="text-white animate-pulse" />
+                                    <div className="overflow-hidden whitespace-nowrap w-48">
+                                        <p className="text-[13px] text-white animate-marquee inline-block font-medium">{reel.audio} • Original Audio</p>
                                     </div>
                                 </div>
                             </div>

@@ -82,7 +82,7 @@ export function Header() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white border-b z-50">
+    <header className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 z-50 transition-all duration-300">
       <div className="max-w-full mx-auto flex items-center justify-between px-[10px] py-3">
         {/* Left */}
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -91,11 +91,11 @@ export function Header() {
           </Link>
 
           <button
-            className="md:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+            className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-all duration-300 active:scale-95"
             onClick={() => setIsMobileMenuOpen(true)}
             aria-label="Open menu"
           >
-            <Menu size={24} />
+            <Menu size={24} className="transition-transform duration-300 hover:scale-105" />
           </button>
 
           <div className="relative hidden lg:block">
@@ -110,17 +110,17 @@ export function Header() {
 
         {/* Center (Desktop/Tablet) */}
         <div className="hidden md:flex items-center gap-6 lg:gap-12 xl:gap-20">
-          <Link href="/home">
-            <House className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
+          <Link href="/home" className="group">
+            <House className="h-6 w-6 text-muted-foreground cursor-pointer group-hover:text-primary transition-all duration-300 group-hover:scale-110" />
           </Link>
-          <Link href="/communities">
-            <Users className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
+          <Link href="/communities" className="group">
+            <Users className="h-6 w-6 text-muted-foreground cursor-pointer group-hover:text-primary transition-all duration-300 group-hover:scale-110" />
           </Link>
-          <Link href="/video" title="Reels" className="hidden md:block">
-            <Clapperboard className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" />
+          <Link href="/video" title="Reels" className="hidden md:block group">
+            <Clapperboard className="h-6 w-6 text-muted-foreground cursor-pointer group-hover:text-primary transition-all duration-300 group-hover:scale-110" />
           </Link>
-          <Link href="/messages" title="Messages">
-            <svg className="h-6 w-6 text-muted-foreground cursor-pointer hover:text-[#800517] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Link href="/messages" title="Messages" className="group">
+            <svg className="h-6 w-6 text-muted-foreground cursor-pointer group-hover:text-primary transition-all duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </Link>
@@ -128,15 +128,15 @@ export function Header() {
 
         {/* Right */}
         <div className="flex items-center gap-3 sm:gap-6">
-          <Search className="h-6 w-6 text-muted-foreground lg:hidden cursor-pointer hover:text-[#800517]" />
+          <Search className="h-6 w-6 text-muted-foreground lg:hidden cursor-pointer hover:text-primary transition-all duration-300 hover:scale-110" />
 
-          <Link href="/video" className="md:hidden">
-            <Clapperboard className="h-6 w-6 text-muted-foreground" />
+          <Link href="/video" className="md:hidden group">
+            <Clapperboard className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:scale-110" />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/create">
-              <Button className="hidden sm:flex items-center bg-[#800517] hover:bg-[#a0061d] text-white">
+              <Button className="hidden sm:flex items-center bg-primary hover:bg-primary/90 text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm">
                 <Plus className="h-4 w-4 mr-1 sm:mr-2" />
                 <span className="hidden lg:inline">Create</span>
               </Button>

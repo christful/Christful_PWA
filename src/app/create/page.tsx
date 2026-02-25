@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
@@ -156,24 +155,28 @@ export default function CreatePage() {
           </button>
 
           {/* Create Post Card */}
-          <Card className="shadow-sm border-none md:border md:block px-2">
-            <CardHeader className="border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle>{activeTab === "post" ? "Create a New Post" : "Share a Reel"}</CardTitle>
-                <div className="flex bg-slate-100 p-1 rounded-lg">
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+            <div className="border-b border-slate-100 p-4 md:p-6 bg-slate-50/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
+                  {activeTab === "post" ? "Create Post" : "Share Reel"}
+                </h1>
+                <div className="flex bg-slate-200/50 p-1 rounded-xl self-start sm:self-auto w-full sm:w-auto">
                   <button
+                    type="button"
                     onClick={() => {
                       setActiveTab("post");
                       if (mediaType !== "video") {
                         // Keep selection if it's already compatible or reset if needed
                       }
                     }}
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${activeTab === "post" ? "bg-white shadow-sm text-[#800517]" : "text-slate-500 hover:text-slate-700"
+                    className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${activeTab === "post" ? "bg-white shadow-sm text-[#800517] scale-100" : "text-slate-500 hover:text-slate-700 active:scale-95"
                       }`}
                   >
                     Post
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setActiveTab("reel");
                       if (mediaType && mediaType !== "video") {
@@ -182,34 +185,31 @@ export default function CreatePage() {
                         toast.info("Switched to Reel: Only videos allowed");
                       }
                     }}
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${activeTab === "reel" ? "bg-white shadow-sm text-[#800517]" : "text-slate-500 hover:text-slate-700"
+                    className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${activeTab === "reel" ? "bg-white shadow-sm text-[#800517] scale-100" : "text-slate-500 hover:text-slate-700 active:scale-95"
                       }`}
                   >
                     Reel
                   </button>
                 </div>
               </div>
-            </CardHeader>
+            </div>
 
-            <CardContent className="pt-6">
+            <div className="p-4 md:p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Text Input */}
                 <div>
-                  <label className="text-sm font-bold text-slate-700 mb-2 block">
-                    {activeTab === "post" ? "What's on your mind?" : "Caption for your reel"}
-                  </label>
                   <Textarea
-                    placeholder={activeTab === "post" ? "Share your thoughts, testimonies, or inspirations..." : "Describe your reel..."}
+                    placeholder={activeTab === "post" ? "What's on your mind? Share your thoughts, testimonies, or inspirations..." : "Write a caption for your reel..."}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    className="min-h-32 resize-none bg-slate-50 border-none rounded-xl p-4 focus-visible:ring-1 focus-visible:ring-primary/20"
+                    className="min-h-[160px] text-lg resize-none bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-slate-400 font-medium"
                   />
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-[10px] items-center flex font-bold text-slate-400 uppercase tracking-wider">
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                       {content.length} characters
                     </p>
                     {activeTab === "reel" && videoDuration && (
-                      <p className={`text-[10px] font-bold uppercase tracking-wider ${videoDuration > 60 ? 'text-orange-500' : 'text-slate-400'}`}>
+                      <p className={`text-xs font-bold uppercase tracking-wider ${videoDuration > 60 ? 'text-orange-500' : 'text-slate-400'}`}>
                         Duration: {Math.floor(videoDuration)}s {videoDuration > 60 ? '(Will be shortened)' : ''}
                       </p>
                     )}
@@ -218,24 +218,24 @@ export default function CreatePage() {
 
                 {/* File Preview */}
                 {selectedFile && (
-                  <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-white p-2 rounded-lg shadow-sm">
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between group transition-all hover:bg-slate-100">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex items-center justify-center">
                         {mediaType === "image" && (
-                          <Image className="h-5 w-5 text-blue-500" />
+                          <Image className="h-6 w-6 text-blue-500" />
                         )}
                         {mediaType === "video" && (
-                          <Video className="h-5 w-5 text-[#800517]" />
+                          <Video className="h-6 w-6 text-[#800517]" />
                         )}
                         {mediaType === "audio" && (
-                          <Music className="h-5 w-5 text-emerald-500" />
+                          <Music className="h-6 w-6 text-emerald-500" />
                         )}
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-slate-700 truncate max-w-[200px]">
+                        <p className="font-bold text-sm text-slate-800 truncate max-w-[200px] md:max-w-[300px]">
                           {selectedFile.name}
                         </p>
-                        <p className="text-xs font-medium text-slate-400">
+                        <p className="text-xs font-semibold text-slate-500 mt-1">
                           {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • {mediaType?.toUpperCase()}
                         </p>
                       </div>
@@ -247,7 +247,7 @@ export default function CreatePage() {
                         setMediaType(null);
                         setVideoDuration(null);
                       }}
-                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors"
+                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-full transition-all active:scale-90"
                     >
                       ✕
                     </button>
@@ -255,71 +255,81 @@ export default function CreatePage() {
                 )}
 
                 {/* File Upload Buttons */}
-                <div className="grid grid-cols-3 gap-3">
-                  {activeTab === "post" && (
-                    <label className="cursor-pointer group">
+                {!selectedFile && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {activeTab === "post" && (
+                      <label className="cursor-pointer group">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileSelect(file, "image");
+                          }}
+                          className="hidden"
+                        />
+                        <div className="flex items-center sm:flex-col justify-center gap-3 p-4 bg-[#f0f2f5] border border-transparent rounded-2xl hover:bg-[#e4e6eb] transition-all active:scale-95">
+                          <div className="bg-white p-2.5 rounded-full text-blue-600 shadow-sm group-hover:scale-110 transition-transform">
+                            <Image className="h-5 w-5" />
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">Photo</span>
+                        </div>
+                      </label>
+                    )}
+
+                    <label className={`cursor-pointer group ${activeTab === "reel" ? "col-span-1 sm:col-span-3" : ""}`}>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="video/*"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handleFileSelect(file, "image");
+                          if (file) handleFileSelect(file, "video");
                         }}
                         className="hidden"
                       />
-                      <div className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group-hover:scale-[1.02]">
-                        <Image className="h-6 w-6 text-blue-500" />
-                        <span className="text-xs font-bold text-slate-600">Photo</span>
+                      <div className="flex items-center sm:flex-col justify-center gap-3 p-4 bg-[#f0f2f5] border border-transparent rounded-2xl hover:bg-[#e4e6eb] transition-all active:scale-95">
+                        <div className="bg-white p-2.5 rounded-full text-[#800517] shadow-sm group-hover:scale-110 transition-transform">
+                          <Video className="h-5 w-5" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">{activeTab === "reel" ? "Select Video" : "Video"}</span>
                       </div>
                     </label>
-                  )}
 
-                  <label className={`cursor-pointer group ${activeTab === "reel" ? "col-span-3" : ""}`}>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileSelect(file, "video");
-                      }}
-                      className="hidden"
-                    />
-                    <div className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group-hover:scale-[1.02]">
-                      <Video className="h-6 w-6 text-[#800517]" />
-                      <span className="text-xs font-bold text-slate-600">{activeTab === "reel" ? "Select Reel Video" : "Video"}</span>
-                    </div>
-                  </label>
-
-                  {activeTab === "post" && (
-                    <label className="cursor-pointer group">
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileSelect(file, "audio");
-                        }}
-                        className="hidden"
-                      />
-                      <div className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group-hover:scale-[1.02]">
-                        <Music className="h-6 w-6 text-emerald-500" />
-                        <span className="text-xs font-bold text-slate-600">Audio</span>
-                      </div>
-                    </label>
-                  )}
-                </div>
+                    {activeTab === "post" && (
+                      <label className="cursor-pointer group">
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileSelect(file, "audio");
+                          }}
+                          className="hidden"
+                        />
+                        <div className="flex items-center sm:flex-col justify-center gap-3 p-4 bg-[#f0f2f5] border border-transparent rounded-2xl hover:bg-[#e4e6eb] transition-all active:scale-95">
+                          <div className="bg-white p-2.5 rounded-full text-emerald-600 shadow-sm group-hover:scale-110 transition-transform">
+                            <Music className="h-5 w-5" />
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">Audio</span>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                )}
 
                 {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full h-12 text-base font-bold bg-[#800517] hover:bg-[#a0061d] shadow-md hover:shadow-lg transition-all rounded-xl"
-                  disabled={isLoading || (!content.trim() && !selectedFile)}
-                >
-                  {isLoading ? "Sharing..." : activeTab === "post" ? "Create Post" : "Post Reel"}
-                </Button>
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    className="w-full h-14 text-lg font-bold bg-[#800517] hover:bg-[#600412] text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+                    disabled={isLoading || (!content.trim() && !selectedFile)}
+                  >
+                    {isLoading ? "Sharing..." : activeTab === "post" ? "Post" : "Share Reel"}
+                  </Button>
+                </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 

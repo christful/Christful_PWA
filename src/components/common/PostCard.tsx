@@ -346,8 +346,8 @@ export function PostCard({
           <div
             className={cn(
               mediaClasses,
-              "aspect-square md:aspect-[4/5] cursor-zoom-in group",
-              "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full",
+              "aspect-square sm:aspect-[4/5] cursor-zoom-in group",
+              "w-full",
               "border-0"
             )}
             onClick={() => setIsMediaModalOpen(true)}
@@ -367,28 +367,25 @@ export function PostCard({
       case "video":
         return videoUrl && (
           <div
-  className={cn(
-    "relative w-full bg-black overflow-hidden",
-    "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full"
-  )}
->
-  <video
-    src={videoUrl}
-    className="w-full h-90 object-cover"
-    controls
-    playsInline
-    preload="metadata"
-  />
-</div>
+            className={cn(
+              "relative w-full bg-black overflow-hidden aspect-video sm:aspect-auto sm:max-h-[600px] flex items-center justify-center group"
+            )}
+          >
+            <video
+              src={videoUrl}
+              className="w-full h-90 object-cover"
+              controls
+              playsInline
+              preload="metadata"
+            />
+          </div>
 
-);
+        );
 
       case "audio":
         return audioUrl && (
           <div className={cn(
-            "w-full h-full bg-gray-100 dark:bg-gray-800",
-            "-mx-4 md:mx-0 w-[calc(100%+2rem)] md:w-full",
-            "px-4 py-4 md:rounded-xl md:border md:border-gray-200 md:dark:border-gray-700"
+            "w-full h-full bg-gray-50 dark:bg-gray-900 rounded-xl sm:border border-gray-100 dark:border-gray-800 p-4 shadow-inner"
           )}>
             <audio src={audioUrl} controls className="w-full" />
           </div>
@@ -401,9 +398,9 @@ export function PostCard({
 
   return (
     <>
-      <Card className="md:rounded-2xl border-0 bg-white dark:bg-gray-950 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      <Card className="rounded-none sm:rounded-2xl border-y sm:border border-gray-100 dark:border-gray-800/50 bg-white dark:bg-gray-950 shadow-none sm:shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden mb-2 sm:mb-6">
         {/* HEADER with Follow Button */}
-        <CardHeader className="flex flex-row items-start justify-between px-4 md:px-5">
+        <CardHeader className="flex flex-row items-center justify-between px-4 sm:px-5 py-3 sm:py-4">
           <div className="flex gap-3">
             <Link href={`/profile/${authorId}`} className="group">
               <Avatar className="h-11 w-11 ring-2 ring-white dark:ring-gray-900 group-hover:ring-primary/20 transition-all">
@@ -430,10 +427,10 @@ export function PostCard({
                     size="sm"
                     onClick={handleFollow}
                     className={cn(
-                      "h-7 px-2 text-xs rounded-full gap-1",
+                      "h-7 px-3 text-xs rounded-full gap-1 font-semibold transition-all duration-200 active:scale-95",
                       isFollowing
-                        ? "text-gray-600 hover:text-gray-900 dark:text-gray-300"
-                        : "text-primary hover:text-primary/80"
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        : "bg-primary/10 text-primary hover:bg-primary/20"
                     )}
                   >
                     {isFollowing ? (
@@ -461,7 +458,7 @@ export function PostCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95"
               >
                 <Ellipsis className="h-4 w-4" />
               </Button>
@@ -489,9 +486,9 @@ export function PostCard({
         </CardHeader>
 
         {/* CONTENT */}
-        <CardContent className="pt-0 pb-2 space-y-4">
+        <CardContent className="p-0 sm:px-5 sm:pb-4 space-y-3">
           {textContent && (
-            <div className="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200">
+            <div className="text-[14px] sm:text-[15px] leading-relaxed text-gray-800 dark:text-gray-200 px-4 sm:px-0 pt-2 sm:pt-0">
               <p className={cn("px-5", !showFullText && "line-clamp-4")}>
                 {textContent}
               </p>
@@ -516,7 +513,7 @@ export function PostCard({
 
         {/* ENGAGEMENT METRICS */}
         {(currentLikesCount > 0 || comments.length > 0 || commentsCount > 0) && (
-          <div className="px-4 md:px-5 pb-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="px-4 sm:px-5 pb-2 pt-2 sm:pt-0 flex items-center gap-3 text-[13px] text-gray-500 dark:text-gray-400">
             {currentLikesCount > 0 && (
               <span className="font-medium">
                 {currentLikesCount} {currentLikesCount === 1 ? 'like' : 'likes'}
@@ -531,16 +528,16 @@ export function PostCard({
         )}
 
         {/* FOOTER ACTIONS */}
-        <CardFooter className="border-t border-gray-100 dark:border-gray-800 px-4 md:px-5 py-3">
+        <CardFooter className="border-t border-gray-100 dark:border-gray-800/50 px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between w-full">
             {/* LIKE */}
             <button
               onClick={handleLike}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200",
+                "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full transition-all duration-300 active:scale-90",
                 liked
-                  ? "text-red-500 bg-red-50 dark:bg-red-950/30"
-                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  ? "text-red-500"
+                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900"
               )}
             >
               <Heart
@@ -553,10 +550,10 @@ export function PostCard({
               </span>
             </button>
 
-            {/* COMMENT - now opens modal */}
+            {/* COMMENT */}
             <button
               onClick={() => setIsCommentsModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-300 active:scale-95"
             >
               <MessageSquareText size={20} />
               <span className="text-sm font-medium hidden sm:inline">
@@ -565,7 +562,7 @@ export function PostCard({
             </button>
 
             {/* SHARE */}
-            <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
+            <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-300 active:scale-95">
               <Repeat2 size={20} />
               <span className="text-sm font-medium hidden sm:inline">
                 Share
