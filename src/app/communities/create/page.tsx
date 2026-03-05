@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ENDPOINTS } from "@/lib/api-config";
@@ -27,7 +26,7 @@ export default function CreateCommunityPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error("Community name is required");
       return;
@@ -85,16 +84,19 @@ export default function CreateCommunityPage() {
           </button>
 
           {/* Create Community Card */}
-          <Card className="shadow-lg border-0 bg-white/95 backdrop-blur">
-            <CardHeader className="bg-gradient-to-r from-primary/5 to-secondary/5 border-b">
-              <CardTitle className="text-2xl">Create a New Community</CardTitle>
-            </CardHeader>
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+            <div className="border-b border-slate-100 p-4 md:p-6 bg-slate-50/50">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
+                Create a New Community
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">Build a space for believers to connect</p>
+            </div>
 
-            <CardContent className="pt-6">
+            <div className="p-4 md:p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Community Name */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
+                  <label className="text-sm font-bold text-slate-700 mb-2 block">
                     Community Name
                   </label>
                   <Input
@@ -104,35 +106,43 @@ export default function CreateCommunityPage() {
                     value={formData.name}
                     onChange={handleChange}
                     disabled={isLoading}
+                    className="h-14 bg-[#f0f2f5] border-transparent focus-visible:ring-2 focus-visible:ring-[#800517]/20 focus-visible:border-[#800517]/30 rounded-xl px-4 text-base font-medium transition-all"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
+                  <label className="text-sm font-bold text-slate-700 mb-2 block">
                     Description
                   </label>
                   <Textarea
                     name="description"
-                    placeholder="Describe your community..."
+                    placeholder="What is this community about? Describe your vision..."
                     value={formData.description}
                     onChange={handleChange}
-                    className="min-h-32 resize-none"
+                    className="min-h-[140px] bg-[#f0f2f5] border-transparent focus-visible:ring-2 focus-visible:ring-[#800517]/20 focus-visible:border-[#800517]/30 rounded-xl p-4 text-base font-medium resize-none transition-all"
                     disabled={isLoading}
                   />
+                  <div className="flex justify-end items-center mt-2">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      {formData.description.length} characters
+                    </p>
+                  </div>
                 </div>
 
                 {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading || !formData.name.trim() || !formData.description.trim()}
-                >
-                  {isLoading ? "Creating..." : "Create Community"}
-                </Button>
+                <div className="pt-4">
+                  <Button
+                    type="submit"
+                    className="w-full h-14 text-lg font-bold bg-[#800517] hover:bg-[#600412] text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+                    disabled={isLoading || !formData.name.trim() || !formData.description.trim()}
+                  >
+                    {isLoading ? "Creating..." : "Create Community"}
+                  </Button>
+                </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
