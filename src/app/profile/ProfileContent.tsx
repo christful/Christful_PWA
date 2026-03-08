@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
@@ -51,11 +51,15 @@ export default function ProfileContent() {
     const [editData, setEditData] = useState({ bio: "" });
     const [uploading, setUploading] = useState(false);
 
-    // Use API with caching — supports optional `?userId=` to view other users' profiles
-    const searchParams = useSearchParams();
-    const otherUserId = searchParams?.get("userId");
-    const profileEndpoint = otherUserId ? ENDPOINTS.USER_DETAIL(otherUserId) : ENDPOINTS.PROFILE;
-    const { data: userData, isLoading: userLoading, mutate: mutateUser } = useApi<UserProfile>(profileEndpoint);
+    const params = useParams();
+const userId = params?.id as string;
+
+const profileEndpoint = userId
+  ? ENDPOINTS.USER_DETAIL(userId)
+  : ENDPOINTS.PROFILE;
+
+const { data: userData, isLoading: userLoading, mutate: mutateUser } =
+  useApi<UserProfile>(profileEndpoint);
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
@@ -177,7 +181,7 @@ export default function ProfileContent() {
             setUploading(true);
             const token = localStorage.getItem("auth_token");
 
-            const response = await fetch(ENDPOINTS.PROFILE, {
+            const response = await fetch(ENDPOINTS.ME, {
                 method: "PATCH",
                 headers: {
                     Authorization: `Bearer ${token}`,
