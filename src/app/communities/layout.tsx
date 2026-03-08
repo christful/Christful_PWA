@@ -18,6 +18,8 @@ export default function CommunitiesLayout({
 }) {
     const [userCommunities, setUserCommunities] = useState<Community[]>([]);
     const [isLoadingUserCommunities, setIsLoadingUserCommunities] = useState(true);
+    const [suggestedCommunities, setSuggestedCommunities] = useState<any[]>([]);
+    const [isLoadingSuggested, setIsLoadingSuggested] = useState(false);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
     const params = useParams();
     const selectedId = params.id as string;
@@ -25,6 +27,7 @@ export default function CommunitiesLayout({
 
     useEffect(() => {
         fetchUserCommunities();
+        fetchSuggestedCommunities();
     }, []);
 
     const fetchUserCommunities = async () => {
@@ -46,6 +49,38 @@ export default function CommunitiesLayout({
             console.error("Error fetching user communities:", error);
         } finally {
             setIsLoadingUserCommunities(false);
+        }
+    };
+
+    const fetchSuggestedCommunities = async () => {
+        try {
+            setIsLoadingSuggested(true);
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`${ENDPOINTS.COMMUNITY_SUGGESTED}?page=1&limit=10`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                const payload = await response.json();
+                // Expected shape: { communities: [...] } or { data: [...] }
+                const rawSuggested = payload?.communities || payload?.data || [];
+                
+                // Map to the shape expected by CommunityListSidebar (id, name, avatarUrl, members)
+                const mapped = rawSuggested.map((c: any) => ({
+                    id: c.id,
+                    name: c.name,
+                    avatarUrl: c.avatarUrl || c.profileImageUrl || c.creator?.avatarUrl || null,
+                    members: c.membersCount || c._count?.members || "0", // adjust based on actual API field
+                }));
+                setSuggestedCommunities(mapped.slice(0, 10));
+            } else {
+                console.error("Failed to fetch suggested communities:", response.status);
+            }
+        } catch (error) {
+            console.error("Error fetching suggested communities:", error);
+            toast.error("Failed to load suggestions");
+        } finally {
+            setIsLoadingSuggested(false);
         }
     };
 
@@ -72,35 +107,18 @@ export default function CommunitiesLayout({
 
             if (response.ok) {
                 toast.success("Joined community successfully!");
-                fetchUserCommunities();
+                fetchUserCommunities(); // refresh user communities
+                // Optionally remove from suggestions
+                setSuggestedCommunities(prev => prev.filter(c => c.id !== communityId));
+            } else {
+                const error = await response.text();
+                toast.error(error || "Failed to join community");
             }
         } catch (error) {
             console.error("Error joining community:", error);
             toast.error("Failed to join community");
         }
     };
-
-    // Mock suggested communities data
-    const suggestedCommunities = [
-        {
-            id: "s1",
-            name: "Morning Prayer Warriors",
-            members: "12.4k",
-            avatarUrl: "https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=100&h=100&fit=crop"
-        },
-        {
-            id: "s2",
-            name: "Youth for Christ",
-            members: "8.2k",
-            avatarUrl: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=100&h=100&fit=crop"
-        },
-        {
-            id: "s3",
-            name: "Daily Bible Study",
-            members: "25.1k",
-            avatarUrl: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=100&h=100&fit=crop"
-        },
-    ];
 
     return (
         <div className="min-h-screen bg-[#F8FAFC]">

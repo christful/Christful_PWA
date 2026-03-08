@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageBubble } from "@/components/ui/message-bubble";
 import { Input } from "@/components/ui/input";
@@ -39,22 +39,23 @@ export function ActiveChat({
     isScriptureModalOpen,
     setIsScriptureModalOpen,
     scrollRef,
-    onMediaSelect,
-    mediaPreview,
     selectedMedia,
     setSelectedMedia,
-    setMediaPreview
+    mediaPreview,
+    setMediaPreview,
+    mediaType,
+    setMediaType,
 }: any) {
     const router = useRouter();
     const params = useParams();
     const selectedId = params.id as string;
 
-    const formatDuration = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
+    const audioInputRef = useRef<HTMLInputElement>(null);
+    const captionInputRef = useRef<HTMLInputElement>(null);
 
+    const [modalCaption, setModalCaption] = useState("");
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -63,8 +64,87 @@ export function ActiveChat({
         }
     }, []);
 
+    // Auto-focus caption input when modal opens
+    useEffect(() => {
+        if (selectedMedia && captionInputRef.current) {
+            captionInputRef.current.focus();
+        }
+    }, [selectedMedia]);
+
+    const formatDuration = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'audio') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const maxSize = type === 'image' ? 10 * 1024 * 1024 : type === 'video' ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            toast.error(`File too large. Max ${type === 'image' ? '10MB' : type === 'video' ? '50MB' : '10MB'}`);
+            return;
+        }
+
+        setSelectedMedia(file);
+        setMediaType(type);
+        if (type === 'image' || type === 'video') {
+            const previewUrl = URL.createObjectURL(file);
+            setMediaPreview(previewUrl);
+        } else {
+            setMediaPreview(null);
+            toast.info(`Selected audio: ${file.name}`);
+        }
+
+        e.target.value = '';
+    };
+
+    const triggerFileInput = (type: 'image' | 'video' | 'audio') => {
+        if (type === 'image') fileInputRef.current?.click();
+        else if (type === 'video') videoInputRef.current?.click();
+        else audioInputRef.current?.click();
+    };
+
+    const clearSelectedMedia = () => {
+        setSelectedMedia(null);
+        setMediaPreview(null);
+        setMediaType(null);
+        setModalCaption("");
+    };
+
+    const handleSendFromModal = () => {
+        if (selectedMedia) {
+            onSendMessage(modalCaption, undefined, { file: selectedMedia, type: mediaType });
+            clearSelectedMedia();
+        }
+    };
+
     return (
         <div className="bg-white h-full flex flex-col">
+            {/* Hidden file inputs */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e, 'image')}
+            />
+            <input
+                type="file"
+                ref={videoInputRef}
+                className="hidden"
+                accept="video/*"
+                onChange={(e) => handleFileSelect(e, 'video')}
+            />
+            <input
+                type="file"
+                ref={audioInputRef}
+                className="hidden"
+                accept="audio/*"
+                onChange={(e) => handleFileSelect(e, 'audio')}
+            />
+
             {selectedChat ? (
                 <>
                     {/* Chat Header */}
@@ -123,30 +203,6 @@ export function ActiveChat({
                                 <span className="text-xs font-bold text-red-600">Recording... {formatDuration(recordingDuration)}</span>
                             </div>
                         )}
-
-                        {/* Media Preview */}
-                        {mediaPreview && (
-                            <div className="flex justify-end mt-2">
-                                <div className="relative max-w-[200px] rounded-lg overflow-hidden border">
-                                    {selectedMedia?.type.startsWith('image/') ? (
-                                        <img src={mediaPreview} alt="Preview" className="w-full h-auto" />
-                                    ) : (
-                                        <video src={mediaPreview} className="w-full h-auto" controls />
-                                    )}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full h-6 w-6"
-                                        onClick={() => {
-                                            setSelectedMedia(null);
-                                            setMediaPreview(null);
-                                        }}
-                                    >
-                                        <X size={12} />
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Input Area */}
@@ -167,7 +223,7 @@ export function ActiveChat({
                                             <Button
                                                 variant="ghost"
                                                 className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
-                                                onClick={() => onMediaSelect('image')}
+                                                onClick={() => triggerFileInput('image')}
                                             >
                                                 <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
                                                     <ImageIcon size={24} />
@@ -177,7 +233,7 @@ export function ActiveChat({
                                             <Button
                                                 variant="ghost"
                                                 className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
-                                                onClick={() => onMediaSelect('video')}
+                                                onClick={() => triggerFileInput('video')}
                                             >
                                                 <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
                                                     <VideoIcon size={24} />
@@ -187,7 +243,7 @@ export function ActiveChat({
                                             <Button
                                                 variant="ghost"
                                                 className="flex flex-col h-auto py-4 gap-2 rounded-2xl hover:bg-slate-50"
-                                                onClick={() => onMediaSelect('audio')}
+                                                onClick={() => triggerFileInput('audio')}
                                             >
                                                 <div className="h-12 w-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
                                                     <Music size={24} />
@@ -240,7 +296,7 @@ export function ActiveChat({
                                     className="bg-transparent border-none focus-visible:ring-0 shadow-none h-10 px-0 text-sm"
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
-                                    onKeyPress={(e) => e.key === "Enter" && onSendMessage(message)}
+                                    onKeyPress={(e) => e.key === "Enter" && (message.trim() || audioBlob || selectedMedia) && onSendMessage(message, audioBlob || undefined, selectedMedia ? { file: selectedMedia, type: mediaType } : undefined)}
                                     autoFocus
                                 />
                             </div>
@@ -271,7 +327,7 @@ export function ActiveChat({
                                         <Button
                                             size="icon"
                                             className="rounded-full bg-[#800517] h-10 w-10 shrink-0 shadow-md hover:bg-[#A0061D]"
-                                            onClick={() => onSendMessage(message, audioBlob || undefined)}
+                                            onClick={() => onSendMessage(message, audioBlob || undefined, selectedMedia ? { file: selectedMedia, type: mediaType } : undefined)}
                                         >
                                             <Send size={18} />
                                         </Button>
@@ -290,6 +346,52 @@ export function ActiveChat({
                     <p className="text-xs">Select a chat to start connecting with believers</p>
                 </div>
             )}
+
+            {/* Full-screen media preview modal */}
+            {selectedMedia && mediaType !== 'audio' && (
+                <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={clearSelectedMedia}>
+                    <div className="relative max-w-3xl w-full max-h-[90vh] bg-black rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        {/* Media display */}
+                        <div className="flex items-center justify-center h-full max-h-[70vh]">
+                            {mediaType === 'image' ? (
+                                <img src={mediaPreview} alt="Preview" className="max-w-full max-h-full object-contain" />
+                            ) : mediaType === 'video' ? (
+                                <video src={mediaPreview} className="max-w-full max-h-full" controls autoPlay />
+                            ) : null}
+                        </div>
+                        {/* Bottom bar with caption and send */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    ref={captionInputRef}
+                                    placeholder="Add a caption..."
+                                    value={modalCaption}
+                                    onChange={(e) => setModalCaption(e.target.value)}
+                                    className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSendFromModal()}
+                                />
+                                <Button
+                                    size="icon"
+                                    className="bg-[#800517] hover:bg-[#A0061D] rounded-full shrink-0"
+                                    onClick={handleSendFromModal}
+                                >
+                                    <Send size={18} />
+                                </Button>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-white hover:bg-white/20 rounded-full"
+                                    onClick={clearSelectedMedia}
+                                >
+                                    <X size={18} />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Audio files don't need a full-screen preview; we keep the existing toast */}
         </div>
     );
 }

@@ -43,8 +43,8 @@ export default function MessageDetailPage() {
         }
     }, [messages]);
 
-    const handleSendMessage = async (content: string, audio?: Blob) => {
-        if ((!content.trim() && !audio && !selectedMedia) || !groupId) return;
+    const handleSendMessage = async (content: string, audio?: Blob, fileInfo?: { file: File; type: string }) => {
+        if ((!content.trim() && !audio && !fileInfo) || !groupId) return;
 
         try {
             const token = localStorage.getItem("auth_token");
@@ -56,9 +56,9 @@ export default function MessageDetailPage() {
             if (audio) {
                 formData.append("audio", audio, "voice-note.webm");
             }
-            if (selectedMedia) {
-                const fieldName = mediaType === 'image' ? 'image' : mediaType === 'video' ? 'video' : 'audio';
-                formData.append(fieldName, selectedMedia);
+            if (fileInfo) {
+                const fieldName = fileInfo.type === 'image' ? 'image' : fileInfo.type === 'video' ? 'video' : 'audio';
+                formData.append(fieldName, fileInfo.file);
             }
 
             const response = await fetch(ENDPOINTS.GROUP_MESSAGES(groupId), {
@@ -151,14 +151,13 @@ export default function MessageDetailPage() {
             isScriptureModalOpen={isScriptureModalOpen}
             setIsScriptureModalOpen={setIsScriptureModalOpen}
             scrollRef={scrollRef}
-            onMediaSelect={(type: any) => {
-                // This would ideally trigger the file input in the layout or a shared ref
-                toast.info("Media selection coming soon to dynamic routing");
-            }}
-            mediaPreview={mediaPreview}
+            // Media props
             selectedMedia={selectedMedia}
             setSelectedMedia={setSelectedMedia}
+            mediaPreview={mediaPreview}
             setMediaPreview={setMediaPreview}
+            mediaType={mediaType}
+            setMediaType={setMediaType}
         />
     );
 }
