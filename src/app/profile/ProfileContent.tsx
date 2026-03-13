@@ -55,11 +55,12 @@ export default function ProfileContent() {
 const userId = params?.id as string;
 
 const profileEndpoint = userId
-  ? ENDPOINTS.USER_DETAIL(userId)
+  ? ENDPOINTS.PROFILE_DETAILS(userId)
   : ENDPOINTS.PROFILE;
 
 const { data: userData, isLoading: userLoading, mutate: mutateUser } =
   useApi<UserProfile>(profileEndpoint);
+  console.log("Fetched user data:", userData);
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {

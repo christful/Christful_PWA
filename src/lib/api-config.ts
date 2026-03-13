@@ -17,6 +17,7 @@ export const ENDPOINTS = {
     // User Profiles
     USER: `${API_BASE_URL}/user`,
     PROFILE: `${API_BASE_URL}/profile`, // Alias for /user
+    PROFILE_DETAILS: (userId: string) => `${API_BASE_URL}/users/${userId}/profile-details`,
     USERS: `${API_BASE_URL}/users`,
     USER_DETAIL: (userId: string) => `${API_BASE_URL}/users/${userId}`,
 
