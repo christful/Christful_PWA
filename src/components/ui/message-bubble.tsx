@@ -4,10 +4,12 @@ import { formatRelativeTime } from "@/lib/date-utils";
 import { Check, CheckCheck, Play, Pause } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 interface MessageBubbleProps {
     content?: string;
     senderName: string;
+    senderId?: string;
     isMe: boolean;  // This must be true for your messages
     timestamp: string;
     avatarUrl?: string;
@@ -27,6 +29,7 @@ interface MessageBubbleProps {
 export function MessageBubble({
     content,
     senderName,
+    senderId,
     isMe,
     timestamp,
     avatarUrl,
@@ -39,6 +42,7 @@ export function MessageBubble({
     onReact,
     replyTo
 }: MessageBubbleProps) {
+    const router = useRouter()
     const [isPlaying, setIsPlaying] = useState(false);
     const [audioProgress, setAudioProgress] = useState(0);
     const [audioDuration, setAudioDuration] = useState(0);
@@ -121,7 +125,7 @@ export function MessageBubble({
             )}>
                 {/* Avatar for non-me messages */}
                 {!isMe && (
-                    <div className="flex-shrink-0 self-end mb-1">
+                    <div className="flex-shrink-0 self-end mb-1 cursor-pointer" onClick={() => router.push(`/profile/${senderId}`)}>
                         <Avatar className="h-8 w-8 ring-2 ring-white shadow-sm">
                             <AvatarImage src={avatarUrl} />
                             <AvatarFallback className="bg-gradient-to-br from-[#800517] to-[#a0061d] text-white text-xs">

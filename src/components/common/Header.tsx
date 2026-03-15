@@ -38,6 +38,7 @@ export function Header() {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log("Notification count response:", data);
         const notifs = Array.isArray(data) ? data : data.notifications || [];
         const unreadCount = notifs.filter((n: any) => n.isRead === false).length;
         setNotifCount(unreadCount);

@@ -153,9 +153,10 @@ export function ActiveChat({
                             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => router.push("/messages")}>
                                 <ChevronLeft size={24} />
                             </Button>
-                            <div className="relative">
+                            <div className="flex cursor-pointer" onClick={() => router.push(`/messages/profile/${selectedChat.id}`)}>
+                            <div className="relative mr-5">
                                 <Avatar className="h-10 w-10 ring-2 ring-slate-100">
-                                    <AvatarImage src={selectedChat.profileImageUrl || undefined} className="object-cover" />
+                                    <AvatarImage src={selectedChat.avatarUrl || undefined} className="object-cover" />
                                     <AvatarFallback className="bg-slate-100 text-[#800517] font-bold">
                                         {selectedChat.name.charAt(0).toUpperCase()}
                                     </AvatarFallback>
@@ -165,6 +166,7 @@ export function ActiveChat({
                             <div>
                                 <h3 className="font-bold text-sm text-slate-800">{selectedChat.name}</h3>
                                 <p className="text-[10px] text-green-500 font-medium">Active now</p>
+                            </div>
                             </div>
                         </div>
                         <Button variant="ghost" size="icon" className="text-[#800517] hover:bg-red-50" onClick={() => toast.info("Call clicked")}>
@@ -182,6 +184,7 @@ export function ActiveChat({
                                     key={msg.id || idx}
                                     content={msg.content}
                                     senderName={msg.sender?.firstName || msg.authorName || "User"}
+                                    senderId={msg.sender?.id}
                                     isMe={userId ? msg.sender?.id === userId : false}
                                     timestamp={msg.createdAt}
                                     avatarUrl={msg.sender?.avatarUrl || msg.authorAvatar}

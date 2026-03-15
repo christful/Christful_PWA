@@ -50,7 +50,7 @@ export function ChatList({ chats, isLoading, searchQuery, setSearchQuery, onOpen
             >
               <div className="relative">
                 <Avatar className="h-14 w-14 flex-shrink-0 border-2 border-white shadow-sm">
-                  <AvatarImage src={chat.profileImageUrl || undefined} className="object-cover" />
+                  <AvatarImage src={chat.avatarUrl || undefined} className="object-cover" />
                   <AvatarFallback className="bg-slate-200 text-[#800517] font-bold text-xl">
                     {chat.name.charAt(0).toUpperCase()}
                   </AvatarFallback>

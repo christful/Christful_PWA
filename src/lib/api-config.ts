@@ -71,6 +71,7 @@ export const ENDPOINTS = {
     GROUPS_WITH_RECENT_MESSAGES: `${API_BASE_URL}/groups/recent-messages`,
     GROUP_DETAIL: (groupId: string) => `${API_BASE_URL}/groups/${groupId}`,
     GROUP_DETAILS: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/details`,
+    GROUP_UPDATE: (id: string) => `${API_BASE_URL}/groups/${id}`,
     GROUP_MEMBERS: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/members`,
     GROUP_MEMBER_DETAIL: (groupId: string, memberId: string) => `${API_BASE_URL}/groups/${groupId}/members/${memberId}`,
     GROUP_JOIN: (id: string) => `${API_BASE_URL}/groups/${id}/join`,
