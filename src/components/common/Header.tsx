@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, House, Users, Plus, User, LogOut, Clapperboard, Menu, X } from "lucide-react";
+import { Search, House, Users, Plus, User, LogOut, Clapperboard, Menu, X, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
