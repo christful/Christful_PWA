@@ -40,6 +40,25 @@ interface Post {
     createdAt?: string;
 }
 
+interface ProfileDetailsResponse {
+    message: string;
+    user: UserProfile;
+    posts: Post[];
+    reels: Post[];
+    savedPosts: Post[];
+    stats: {
+        followers: number;
+        following: number;
+        posts: number;
+        reels: number;
+        savedPosts: number;
+    };
+    relationship: {
+        isSelf: boolean;
+        isFollowing: boolean;
+    };
+}
+
 export default function ProfileContent() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,17 +77,17 @@ const profileEndpoint = userId
   ? ENDPOINTS.PROFILE_DETAILS(userId)
   : ENDPOINTS.PROFILE;
 
-const { data: userData, isLoading: userLoading, mutate: mutateUser } =
-  useApi<UserProfile>(profileEndpoint);
-  console.log("Fetched user data:", userData);
+const { data: profileData, isLoading: userLoading, mutate: mutateUser } =
+  useApi<ProfileDetailsResponse>(profileEndpoint);
+  console.log("Fetched profile data:", profileData);
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
         const checkFollowStatus = async () => {
-            if (!userData?.id || userData.id === localStorage.getItem("userId")) return;
+            if (!profileData?.user?.id || profileData.user.id === localStorage.getItem("userId")) return;
             try {
                 const token = localStorage.getItem("auth_token");
-                const response = await fetch(ENDPOINTS.FOLLOW_STATUS(userData.id), {
+                const response = await fetch(ENDPOINTS.FOLLOW_STATUS(profileData.user.id), {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -79,17 +98,21 @@ const { data: userData, isLoading: userLoading, mutate: mutateUser } =
                 console.error("Failed to fetch follow status:", error);
             }
         };
+        if (profileData?.relationship) {
+            setIsFollowing(profileData.relationship.isFollowing);
+            return;
+        }
         checkFollowStatus();
-    }, [userData]);
+    }, [profileData]);
 
     const handleFollowToggle = async () => {
-        if (!userData?.id) return;
+        if (!profileData?.user?.id) return;
         const prev = isFollowing;
         setIsFollowing(!prev);
         try {
             const token = localStorage.getItem("auth_token");
             const method = prev ? "DELETE" : "POST";
-            const response = await fetch(ENDPOINTS.FOLLOW(userData.id), {
+            const response = await fetch(ENDPOINTS.FOLLOW(profileData.user.id), {
                 method,
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -102,30 +125,26 @@ const { data: userData, isLoading: userLoading, mutate: mutateUser } =
         }
     };
 
-    const { data: postsData, isLoading: postsLoading } = useApi<{ posts: Post[] }>(
-        userData?.id ? `${ENDPOINTS.POSTS}?userId=${userData.id}&limit=10` : null
-    );
-
     useEffect(() => {
-        if (userData) {
-            setUser(userData);
-            setIsOwnProfile(userData.id === localStorage.getItem("userId"));
+        if (profileData?.user) {
+            setUser(profileData.user);
+            setIsOwnProfile(profileData.relationship?.isSelf ?? profileData.user.id === localStorage.getItem("userId"));
         }
-    }, [userData]);
+    }, [profileData]);
 
     useEffect(() => {
-        if (postsData) {
-            setUserPosts(postsData.posts || []);
+        if (profileData?.posts) {
+            setUserPosts(profileData.posts || []);
         }
-    }, [postsData]);
+    }, [profileData]);
 
     useEffect(() => {
-        if (userLoading || postsLoading) {
+        if (userLoading) {
             setIsLoading(true);
         } else {
             setIsLoading(false);
         }
-    }, [userLoading, postsLoading]);
+    }, [userLoading]);
 
     useEffect(() => {
         if (user && isEditMode) {
@@ -293,15 +312,15 @@ const { data: userData, isLoading: userLoading, mutate: mutateUser } =
                         {/* Stats - Horizontal */}
                         <div className="flex justify-center md:justify-start gap-8 sm:gap-10 py-2 sm:py-0 border-y sm:border-y-0 border-gray-100 dark:border-gray-800/50">
                             <div className="text-center sm:text-left">
-                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{userPosts.length}</span>
+                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{profileData?.stats?.posts ?? userPosts.length}</span>
                                 <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">posts</span>
                             </div>
                             <div className="text-center sm:text-left cursor-pointer transition-all duration-300 hover:opacity-70">
-                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{user?.followers?.length || 0}</span>
+                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{profileData?.stats?.followers ?? (user?.followers?.length || 0)}</span>
                                 <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">followers</span>
                             </div>
                             <div className="text-center sm:text-left cursor-pointer transition-all duration-300 hover:opacity-70">
-                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{user?.following?.length || 0}</span>
+                                <span className="font-bold text-gray-900 dark:text-gray-100 block sm:inline mr-1">{profileData?.stats?.following ?? (user?.following?.length || 0)}</span>
                                 <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">following</span>
                             </div>
                         </div>

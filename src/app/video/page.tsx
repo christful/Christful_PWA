@@ -32,6 +32,13 @@ interface ApiPost {
     createdAt?: string;
 }
 
+interface ReelsResponse {
+    reels: ApiPost[];
+    total: number;
+    page: number;
+    totalPages: number;
+}
+
 interface VideoReel {
     id: string;
     author: string;
@@ -50,27 +57,25 @@ export default function VideoPage() {
     const [videoPosts, setVideoPosts] = useState<VideoReel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { data, error, isLoading: apiLoading } = useApi<{ posts: ApiPost[] }>(
-        `${ENDPOINTS.POSTS}?limit=30`
+    const { data, error, isLoading: apiLoading } = useApi<ReelsResponse>(
+        `${ENDPOINTS.REELS}?limit=30`
     );
 
     useEffect(() => {
-        if (data?.posts) {
-            const videos = data.posts
-                .filter(post => post.videoUrl)
-                .map(post => ({
-                    id: post.id,
-                    author: `${post.author.firstName} ${post.author.lastName}`,
-                    authorId: post.author.id,
-                    authorAvatar: post.author.avatarUrl,
-                    description: post.content,
-                    likes: post.likes?.length || 0,
-                    comments: post.comments?.length || 0,
-                    shares: 0,
-                    audio: "Original Audio",
-                    videoUrl: post.videoUrl!,
-                    createdAt: post.createdAt
-                }));
+        if (data?.reels) {
+            const videos = data.reels.map(post => ({
+                id: post.id,
+                author: `${post.author.firstName} ${post.author.lastName}`,
+                authorId: post.author.id,
+                authorAvatar: post.author.avatarUrl,
+                description: post.content,
+                likes: post.likes?.length || 0,
+                comments: post.comments?.length || 0,
+                shares: 0,
+                audio: "Original Audio",
+                videoUrl: post.videoUrl!,
+                createdAt: post.createdAt
+            }));
             setVideoPosts(videos);
         }
     }, [data]);

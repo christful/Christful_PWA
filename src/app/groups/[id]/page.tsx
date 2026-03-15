@@ -27,13 +27,37 @@ interface Group {
   id: string;
   name: string;
   description: string;
-  profileImageUrl?: string | null;
-  coverImageUrl?: string | null;
+  avatarUrl?: string | null;
+  createdBy?: string;
+  adminOnlyMessaging?: boolean;
   creator: {
+    id: string;
     firstName: string;
     lastName: string;
+    avatarUrl?: string | null;
   };
   members: any[];
+}
+
+interface GroupDetailsResponse {
+  message: string;
+  group: Group;
+  groupChat: {
+    id: string;
+    groupId: string;
+    createdBy: string;
+    messages: GroupMessage[];
+  };
+  membership: {
+    id: string;
+    role: string;
+    joinedAt: string;
+  };
+  stats: {
+    members: number;
+    admins: number;
+    messages: number;
+  };
 }
 
 export default function GroupDetailPage() {
@@ -44,6 +68,7 @@ export default function GroupDetailPage() {
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [messageInput, setMessageInput] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [membershipRole, setMembershipRole] = useState<string | null>(null);
 
   // Fetch current user ID to determine message alignment
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -80,15 +105,21 @@ export default function GroupDetailPage() {
   const fetchGroupDetail = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.GROUP_DETAIL(groupId), {
+      const response = await fetch(ENDPOINTS.GROUP_DETAILS(groupId), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setGroup(data);
+        const data: GroupDetailsResponse = await response.json();
+        setGroup(data.group);
+        setMessages(data.groupChat?.messages || []);
+        setMembershipRole(data.membership?.role || null);
+      } else if (response.status === 403) {
+        toast.error("You must be a member to view this group");
+      } else if (response.status === 404) {
+        toast.error("Group not found");
       }
     } catch (error) {
       console.error("Error fetching group:", error);
@@ -173,7 +204,7 @@ export default function GroupDetailPage() {
 
           <div className="flex items-center gap-3 cursor-pointer">
             <Avatar className="h-10 w-10 cursor-pointer">
-              <AvatarImage src={group.profileImageUrl || undefined} className="object-cover" />
+              <AvatarImage src={group.avatarUrl || undefined} className="object-cover" />
               <AvatarFallback className="bg-slate-200 text-slate-500 font-medium">
                 {group.name.charAt(0)}
               </AvatarFallback>
@@ -204,8 +235,9 @@ export default function GroupDetailPage() {
           <div className="flex flex-col justify-end min-h-full pb-2">
             {messages.map((message) => {
               const isMe = message.sender.id === currentUserId;
-              const isAdmin = message.sender.id === (group as any)?.creatorId ||
-                (`${message.sender.firstName} ${message.sender.lastName}` === `${group.creator.firstName} ${group.creator.lastName}`);
+              const isAdmin = membershipRole === "admin" ||
+                message.sender.id === group.creator?.id ||
+                message.sender.id === group.createdBy;
 
               return (
                 <MessageBubble
