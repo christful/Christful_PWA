@@ -21,6 +21,13 @@ export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileNavItems = [
+    { href: "/home", label: "Home", icon: House },
+    { href: "/communities", label: "Communities", icon: Users },
+    { href: "/video", label: "Reels", icon: Clapperboard },
+    { href: "/messages", label: "Messages", icon: Mail },
+    { href: "/profile", label: "Profile", icon: User },
+  ];
 
   const fetchNotificationCount = useCallback(async (token: string) => {
     try {
@@ -227,6 +234,25 @@ export function Header() {
                     <p className="font-bold text-slate-900 truncate">{user?.firstName || "Guest"}</p>
                     <p className="text-xs text-slate-500 truncate">Kingdom Citizen</p>
                   </div>
+                </div>
+
+                <div className="space-y-2 mb-6">
+                  {mobileNavItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <span className="bg-slate-200 text-slate-700 p-2 rounded-lg">
+                          <Icon size={18} />
+                        </span>
+                        <span className="font-semibold">{item.label}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
 
                 <div className="pt-2">
