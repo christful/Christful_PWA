@@ -8,14 +8,25 @@ import { Button } from "@/components/ui/button";
 import {
   MessageCircle, Heart, Share2, Music2, Plus,
   Bookmark, MoreHorizontal, Clapperboard, Users, Play, Pause,
-  ChevronUp, ChevronDown, Check, Volume2, VolumeX
+  ChevronUp, ChevronDown, Check, Volume2, VolumeX, X
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApi } from "@/hooks/use-api";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 
-const CURRENT_USER_ID = "d0db50a6-1281-4a19-837b-28ce9975ef82";
+// Inline useMediaQuery hook
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) setMatches(media.matches);
+    const listener = () => setMatches(media.matches);
+    window.addEventListener('resize', listener);
+    return () => window.removeEventListener('resize', listener);
+  }, [matches, query]);
+  return matches;
+}
 
 interface ApiPost {
   id: string;
@@ -42,6 +53,13 @@ interface ReelsResponse {
   totalPages: number;
 }
 
+interface CurrentUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string;
+}
+
 interface VideoReel {
   id: string;
   author: string;
@@ -62,17 +80,421 @@ interface VideoReel {
   shareCount: number;
 }
 
+// Comment interfaces
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+  };
+  likesCount: number;
+  isLiked: boolean;
+  repliesCount?: number;
+}
+
+// Comments Panel for Desktop
+const CommentsPanel = ({ 
+  reelId, 
+  onClose,
+  currentUserId 
+}: { 
+  reelId: string; 
+  onClose: () => void;
+  currentUserId: string;
+}) => {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch comments
+  const { data, error } = useApi<any>(
+    ENDPOINTS.POST_COMMENTS(reelId)
+  );
+
+  useEffect(() => {
+    if (data) {
+      // Transform API response to our Comment interface
+      // Assuming API returns an array of comments with author and likes
+      const fetchedComments = data.map((c: any) => ({
+        id: c.id,
+        content: c.content,
+        createdAt: c.createdAt,
+        author: {
+          id: c.author.id,
+          firstName: c.author.firstName,
+          lastName: c.author.lastName,
+          avatarUrl: c.author.avatarUrl
+        },
+        likesCount: c.likes?.length || 0,
+        isLiked: c.likes?.some((like: any) => like.userId === currentUserId) || false,
+        repliesCount: c.replies?.length || 0
+      }));
+      setComments(fetchedComments);
+      setIsLoading(false);
+    }
+  }, [data, currentUserId]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load comments");
+      setIsLoading(false);
+    }
+  }, [error]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      // POST to create comment
+      const response = await fetch(ENDPOINTS.POST_COMMENTS(reelId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newComment })
+      });
+      if (!response.ok) throw new Error('Failed to post comment');
+      const newCommentData = await response.json();
+      
+      // Optimistically add comment
+      const comment: Comment = {
+        id: newCommentData.id,
+        content: newComment,
+        createdAt: new Date().toISOString(),
+        author: {
+          id: currentUserId,
+          firstName: "You", // We'll update after fetch or use current user data
+          lastName: "",
+          avatarUrl: undefined
+        },
+        likesCount: 0,
+        isLiked: false,
+        repliesCount: 0
+      };
+      setComments([comment, ...comments]);
+      setNewComment("");
+      toast.success("Comment added");
+    } catch (err) {
+      toast.error("Failed to post comment");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLikeComment = async (commentId: string, isLiked: boolean) => {
+    // Optimistic update
+    setComments(prev => prev.map(c => 
+      c.id === commentId 
+        ? { ...c, isLiked: !isLiked, likesCount: isLiked ? c.likesCount - 1 : c.likesCount + 1 }
+        : c
+    ));
+    try {
+      await fetch(ENDPOINTS.LIKE_COMMENT(commentId), { method: 'POST' });
+    } catch {
+      // Revert on error
+      setComments(prev => prev.map(c => 
+        c.id === commentId 
+          ? { ...c, isLiked, likesCount: isLiked ? c.likesCount + 1 : c.likesCount - 1 }
+          : c
+      ));
+      toast.error("Failed to like comment");
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border h-full flex flex-col">
+      <div className="p-4 border-b flex items-center justify-between">
+        <h3 className="font-bold text-lg">Comments</h3>
+        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+          <X size={20} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#800517]"></div>
+          </div>
+        ) : comments.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>
+        ) : (
+          comments.map(comment => (
+            <div key={comment.id} className="flex gap-3">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                {comment.author.avatarUrl ? (
+                  <AvatarImage src={comment.author.avatarUrl} />
+                ) : (
+                  <AvatarFallback>{comment.author.firstName.charAt(0)}</AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-semibold text-sm">
+                    {comment.author.firstName} {comment.author.lastName}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(comment.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-sm mt-1">{comment.content}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <button
+                    onClick={() => handleLikeComment(comment.id, comment.isLiked)}
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                  >
+                    <Heart size={14} className={comment.isLiked ? "fill-[#ff3b5c] text-[#ff3b5c]" : ""} />
+                    {comment.likesCount}
+                  </button>
+                  <button className="text-xs text-gray-500 hover:text-gray-700">Reply</button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      <form onSubmit={handleSubmit} className="p-4 border-t">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Write a comment..."
+            className="flex-1 px-3 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#800517]"
+            disabled={isSubmitting}
+          />
+          <Button 
+            type="submit" 
+            size="sm" 
+            className="bg-[#800517] hover:bg-[#600315] text-white rounded-full px-4"
+            disabled={isSubmitting || !newComment.trim()}
+          >
+            Post
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// Comments Modal for Mobile (similar content, omitted for brevity - same as panel but in modal)
+const CommentsModal = ({ 
+  reelId, 
+  isOpen, 
+  onClose,
+  currentUserId 
+}: { 
+  reelId: string; 
+  isOpen: boolean; 
+  onClose: () => void;
+  currentUserId: string;
+}) => {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data, error } = useApi<any>(
+    isOpen ? ENDPOINTS.POST_COMMENTS(reelId) : null
+  );
+
+  useEffect(() => {
+    if (data) {
+      console.log("fetched comments", data)
+      const fetchedComments = data.comments.map((c: any) => ({
+        id: c.id,
+        content: c.content,
+        createdAt: c.createdAt,
+        author: {
+          id: c.author.id,
+          firstName: c.author.firstName,
+          lastName: c.author.lastName,
+          avatarUrl: c.author.avatarUrl
+        },
+        likesCount: c.likes?.length || 0,
+        isLiked: c.likes?.some((like: any) => like.userId === currentUserId) || false,
+        repliesCount: c.replies?.length || 0
+      }));
+      setComments(fetchedComments);
+      setIsLoading(false);
+    }
+  }, [data, currentUserId]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load comments");
+      setIsLoading(false);
+    }
+  }, [error]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(ENDPOINTS.POST_COMMENTS(reelId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newComment })
+      });
+      if (!response.ok) throw new Error('Failed to post comment');
+      const newCommentData = await response.json();
+      const comment: Comment = {
+        id: newCommentData.id,
+        content: newComment,
+        createdAt: new Date().toISOString(),
+        author: {
+          id: currentUserId,
+          firstName: "You",
+          lastName: "",
+          avatarUrl: undefined
+        },
+        likesCount: 0,
+        isLiked: false,
+        repliesCount: 0
+      };
+      setComments([comment, ...comments]);
+      setNewComment("");
+      toast.success("Comment added");
+    } catch (err) {
+      toast.error("Failed to post comment");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLikeComment = async (commentId: string, isLiked: boolean) => {
+    setComments(prev => prev.map(c => 
+      c.id === commentId 
+        ? { ...c, isLiked: !isLiked, likesCount: isLiked ? c.likesCount - 1 : c.likesCount + 1 }
+        : c
+    ));
+    try {
+      await fetch(ENDPOINTS.LIKE_COMMENT(commentId), { method: 'POST' });
+    } catch {
+      setComments(prev => prev.map(c => 
+        c.id === commentId 
+          ? { ...c, isLiked, likesCount: isLiked ? c.likesCount + 1 : c.likesCount - 1 }
+          : c
+      ));
+      toast.error("Failed to like comment");
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 border-b flex items-center justify-between">
+          <h3 className="font-bold text-lg">Comments</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#800517]"></div>
+            </div>
+          ) : comments.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>
+          ) : (
+            comments.map(comment => (
+              <div key={comment.id} className="flex gap-3">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  {comment.author.avatarUrl ? (
+                    <AvatarImage src={comment.author.avatarUrl} />
+                  ) : (
+                    <AvatarFallback>{comment.author.firstName.charAt(0)}</AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold text-sm">
+                      {comment.author.firstName} {comment.author.lastName}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm mt-1">{comment.content}</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <button
+                      onClick={() => handleLikeComment(comment.id, comment.isLiked)}
+                      className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                    >
+                      <Heart size={14} className={comment.isLiked ? "fill-[#ff3b5c] text-[#ff3b5c]" : ""} />
+                      {comment.likesCount}
+                    </button>
+                    <button className="text-xs text-gray-500 hover:text-gray-700">Reply</button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 border-t">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Write a comment..."
+              className="flex-1 px-3 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#800517]"
+              disabled={isSubmitting}
+            />
+            <Button 
+              type="submit" 
+              size="sm" 
+              className="bg-[#800517] hover:bg-[#600315] text-white rounded-full px-4"
+              disabled={isSubmitting || !newComment.trim()}
+            >
+              Post
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function VideoPage() {
   const [videoPosts, setVideoPosts] = useState<VideoReel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCommentReelId, setSelectedCommentReelId] = useState<string | null>(null);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Fetch current user
+  const { data: currentUser, isLoading: userLoading, error: userError } = useApi<CurrentUser>(
+    ENDPOINTS.USER // e.g., "/auth/me"
+  );
+
+  // Fetch reels
   const { data, error, isLoading: apiLoading } = useApi<ReelsResponse>(
     `${ENDPOINTS.REELS}?limit=30`
   );
 
   useEffect(() => {
-    if (data?.reels) {
+    if (userError) toast.error("Failed to load user data");
+    if (error) toast.error("Failed to load videos");
+  }, [userError, error]);
+
+  useEffect(() => {
+    setIsLoading(apiLoading || userLoading);
+  }, [apiLoading, userLoading]);
+
+  // Transform data when both are ready
+  useEffect(() => {
+    if (data?.reels && currentUser) {
       const videos = data.reels.map(post => {
-        const isLiked = post.likes?.some(like => like.userId === CURRENT_USER_ID) || false;
+        const isLiked = post.likes?.some(like => like.userId === currentUser.id) || false;
         return {
           id: post.id,
           author: `${post.author.firstName} ${post.author.lastName}`,
@@ -95,35 +517,22 @@ export default function VideoPage() {
       });
       setVideoPosts(videos);
     }
-  }, [data]);
-
-  useEffect(() => {
-    setIsLoading(apiLoading);
-  }, [apiLoading]);
-
-  useEffect(() => {
-    if (error) {
-      console.error("Error loading video posts:", error);
-      toast.error("Failed to load videos");
-    }
-  }, [error]);
+  }, [data, currentUser]);
 
   const ReelsFeed = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
     const [iconStates, setIconStates] = useState<{ [key: string]: { show: boolean; type: 'play' | 'pause' | 'heart' } }>({});
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const [mutedStates, setMutedStates] = useState<{ [key: string]: boolean }>({}); // per-video mute state
+    const [mutedStates, setMutedStates] = useState<{ [key: string]: boolean }>({});
     const timeoutsRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
-    const lastTapRef = useRef<{ [key: string]: number }>({}); // for double-tap detection
+    const lastTapRef = useRef<{ [key: string]: number }>({});
 
     useEffect(() => {
-      return () => {
-        Object.values(timeoutsRef.current).forEach(clearTimeout);
-      };
+      return () => Object.values(timeoutsRef.current).forEach(clearTimeout);
     }, []);
 
-    // Auto-play with sound (unmuted)
+    // Auto-play with sound
     useEffect(() => {
       const observer = new IntersectionObserver(
         (entries) => {
@@ -136,7 +545,6 @@ export default function VideoPage() {
               videoRefs.current.forEach((v, id) => {
                 if (id !== reelId) v.pause();
               });
-              // Play unmuted (browser may block; we'll let it try)
               video.play().catch(e => console.log('Auto-play failed:', e));
             } else {
               video.pause();
@@ -151,9 +559,7 @@ export default function VideoPage() {
     }, [videoPosts]);
 
     const showIcon = (reelId: string, type: 'play' | 'pause' | 'heart') => {
-      if (timeoutsRef.current[reelId]) {
-        clearTimeout(timeoutsRef.current[reelId]);
-      }
+      if (timeoutsRef.current[reelId]) clearTimeout(timeoutsRef.current[reelId]);
       setIconStates(prev => ({ ...prev, [reelId]: { show: true, type } }));
       timeoutsRef.current[reelId] = setTimeout(() => {
         setIconStates(prev => ({ ...prev, [reelId]: { ...prev[reelId], show: false } }));
@@ -167,26 +573,21 @@ export default function VideoPage() {
 
       const now = Date.now();
       const lastTap = lastTapRef.current[reelId] || 0;
-      const isDoubleTap = now - lastTap < 300; // 300ms double tap threshold
+      const isDoubleTap = now - lastTap < 300;
 
       if (isDoubleTap) {
-        // Double tap: like
         handleLike(reelId);
         showIcon(reelId, 'heart');
-        lastTapRef.current[reelId] = 0; // reset to prevent triple tap
+        lastTapRef.current[reelId] = 0;
       } else {
-        // Single tap: pause/play
         if (video.paused) {
-          video.play().then(() => {
-            showIcon(reelId, 'play');
-          }).catch(e => console.log('Play failed:', e));
+          video.play().then(() => showIcon(reelId, 'play')).catch(console.log);
         } else {
           video.pause();
           showIcon(reelId, 'pause');
         }
         lastTapRef.current[reelId] = now;
       }
-
       setOpenMenuId(null);
     };
 
@@ -205,7 +606,7 @@ export default function VideoPage() {
     };
 
     const handleComment = (reelId: string) => {
-      toast.info("Open comments modal (simulated)");
+      setSelectedCommentReelId(reelId);
     };
 
     const handleShare = (reelId: string) => {
@@ -213,11 +614,9 @@ export default function VideoPage() {
       toast.success("Link copied to clipboard!");
     };
 
-    const handleFollow = (reelId: string, authorId: string) => {
+    const handleFollow = (reelId: string) => {
       setVideoPosts(prev => prev.map(reel => {
-        if (reel.id === reelId) {
-          return { ...reel, isFollowed: !reel.isFollowed };
-        }
+        if (reel.id === reelId) return { ...reel, isFollowed: !reel.isFollowed };
         return reel;
       }));
       setTimeout(() => toast.success("Follow toggled"), 300);
@@ -225,9 +624,7 @@ export default function VideoPage() {
 
     const handleBookmark = (reelId: string) => {
       setVideoPosts(prev => prev.map(reel => {
-        if (reel.id === reelId) {
-          return { ...reel, isBookmarked: !reel.isBookmarked };
-        }
+        if (reel.id === reelId) return { ...reel, isBookmarked: !reel.isBookmarked };
         return reel;
       }));
       setTimeout(() => toast.success("Bookmark updated"), 300);
@@ -251,9 +648,7 @@ export default function VideoPage() {
       const container = containerRef.current;
       const currentScroll = container.scrollTop;
       const reelHeight = container.clientHeight;
-      const newScroll = direction === 'down' 
-        ? currentScroll + reelHeight 
-        : currentScroll - reelHeight;
+      const newScroll = direction === 'down' ? currentScroll + reelHeight : currentScroll - reelHeight;
       container.scrollTo({ top: newScroll, behavior: 'smooth' });
       setOpenMenuId(null);
     };
@@ -266,19 +661,17 @@ export default function VideoPage() {
 
     return (
       <div className="relative h-[calc(100vh-8rem)]">
-        {/* Up/Down Navigation Arrows - positioned fixed on the right side of the page */}
-        <div className="fixed right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3">
+        {/* Up/Down Navigation Arrows - hidden on mobile, visible on desktop */}
+        <div className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 flex-col gap-3">
           <button
             onClick={() => scrollToReel('up')}
             className="p-3 bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white rounded-full shadow-lg transition-all hover:scale-110 border border-white/20"
-            aria-label="Previous reel"
           >
             <ChevronUp size={24} />
           </button>
           <button
             onClick={() => scrollToReel('down')}
             className="p-3 bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white rounded-full shadow-lg transition-all hover:scale-110 border border-white/20"
-            aria-label="Next reel"
           >
             <ChevronDown size={24} />
           </button>
@@ -286,7 +679,7 @@ export default function VideoPage() {
 
         <div
           ref={containerRef}
-          className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide rounded-2xl bg-black shadow-2xl relative"
+          className="h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar rounded-2xl bg-black shadow-2xl relative"
         >
           {isLoading ? (
             <div className="h-full flex items-center justify-center">
@@ -308,9 +701,8 @@ export default function VideoPage() {
                     if (el) {
                       videoRefs.current.set(reel.id, el);
                       el.dataset.reelId = reel.id;
-                      // Initialize muted state
                       if (mutedStates[reel.id] === undefined) {
-                        el.muted = false; // start unmuted
+                        el.muted = false;
                         setMutedStates(prev => ({ ...prev, [reel.id]: false }));
                       } else {
                         el.muted = mutedStates[reel.id];
@@ -320,17 +712,15 @@ export default function VideoPage() {
                     }
                   }}
                   src={reel.videoUrl}
-                  className="absolute inset-0 w-full h-full object-contain"
+                  className="h-full max-w-full object-contain mx-auto"
                   loop
                   playsInline
                   preload="metadata"
                   controls={false}
                 />
 
-                {/* Dark overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10 pointer-events-none" />
 
-                {/* Play/Pause/Heart icon overlay */}
                 {iconStates[reel.id]?.show && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                     <div className="bg-black/50 rounded-full p-4 backdrop-blur-sm">
@@ -341,54 +731,34 @@ export default function VideoPage() {
                   </div>
                 )}
 
-                {/* Mute/Unmute Button - top right */}
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleMute(reel.id);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); toggleMute(reel.id); }}
                   className="absolute top-4 right-4 z-20 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
                 >
                   {mutedStates[reel.id] ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
 
-                {/* Right Actions Overlay */}
                 <div className="absolute right-3 bottom-10 flex flex-col gap-6 items-center z-10 pointer-events-auto">
-                  {/* Avatar + Bookmark */}
                   <div className="flex flex-col items-center">
                     <div className="h-10 w-10 rounded-full border-[1.5px] border-white overflow-hidden shadow-lg relative">
                       <Avatar className="h-full w-full">
-                        {reel.authorAvatar ? (
-                          <AvatarImage src={reel.authorAvatar} />
-                        ) : null}
+                        {reel.authorAvatar ? <AvatarImage src={reel.authorAvatar} /> : null}
                         <AvatarFallback className="bg-primary text-white">
                           {reel.author.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                     </div>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBookmark(reel.id);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleBookmark(reel.id); }}
                       className="bg-[#800517] rounded-full p-[2px] -mt-2.5 z-10 shadow-md border-2 border-black/80 hover:scale-110 transition-transform"
-                      aria-label={reel.isBookmarked ? "Remove bookmark" : "Bookmark"}
                     >
-                      {reel.isBookmarked ? (
-                        <Check size={10} className="text-white" />
-                      ) : (
-                        <Plus size={10} className="text-white" />
-                      )}
+                      {reel.isBookmarked ? <Check size={10} className="text-white" /> : <Plus size={10} className="text-white" />}
                     </button>
                   </div>
 
-                  {/* Like */}
                   <div className="flex flex-col items-center group">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLike(reel.id);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleLike(reel.id); }}
                       className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                     >
                       {reel.isLiked ? (
@@ -400,13 +770,9 @@ export default function VideoPage() {
                     <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.likeCount}</span>
                   </div>
 
-                  {/* Comment */}
                   <div className="flex flex-col items-center group">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleComment(reel.id);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleComment(reel.id); }}
                       className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                     >
                       <MessageCircle size={28} strokeWidth={2.5} />
@@ -414,13 +780,9 @@ export default function VideoPage() {
                     <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.commentCount}</span>
                   </div>
 
-                  {/* Share */}
                   <div className="flex flex-col items-center group">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(reel.id);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleShare(reel.id); }}
                       className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                     >
                       <Share2 size={28} strokeWidth={2.5} />
@@ -428,57 +790,35 @@ export default function VideoPage() {
                     <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.shareCount}</span>
                   </div>
 
-                  {/* Custom Dropdown Menu */}
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === reel.id ? null : reel.id);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === reel.id ? null : reel.id); }}
                       className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mb-2"
                     >
                       <MoreHorizontal size={26} strokeWidth={3} />
                     </button>
-
                     {openMenuId === reel.id && (
-                      <div 
+                      <div
                         className="absolute right-0 bottom-full mb-2 w-48 bg-black/90 backdrop-blur-md border border-white/20 rounded-lg shadow-xl z-30 py-1"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button
-                          onClick={() => handleMoreOption("Report", reel.id)}
-                          className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-                        >
-                          Report
-                        </button>
-                        <button
-                          onClick={() => handleMoreOption("Not interested", reel.id)}
-                          className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-                        >
-                          Not interested
-                        </button>
-                        <button
-                          onClick={() => handleMoreOption("Save to collection", reel.id)}
-                          className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-                        >
-                          Save to collection
-                        </button>
+                        <button onClick={() => handleMoreOption("Report", reel.id)} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10">Report</button>
+                        <button onClick={() => handleMoreOption("Not interested", reel.id)} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10">Not interested</button>
+                        <button onClick={() => handleMoreOption("Save to collection", reel.id)} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10">Save to collection</button>
                       </div>
                     )}
                   </div>
 
-                  {/* Rotating audio disc */}
                   <div className="h-8 w-8 rounded-md bg-white border-2 border-white/80 flex items-center justify-center overflow-hidden shadow-[0_0_10px_rgba(0,0,0,0.5)]">
-                    <img 
-                      src={reel.authorAvatar || "https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=100&h=100&fit=crop"} 
-                      alt="audio cover" 
-                      className="w-full h-full object-cover animate-spin" 
-                      style={{ animationDuration: '4s' }} // slow spin
+                    <img
+                      src={reel.authorAvatar || "https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=100&h=100&fit=crop"}
+                      alt="audio cover"
+                      className="w-full h-full object-cover animate-spin"
+                      style={{ animationDuration: '4s' }}
                     />
                   </div>
                 </div>
 
-                {/* Bottom Info Overlay */}
                 <div className="absolute left-4 bottom-4 right-16 z-10 pointer-events-none flex flex-col justify-end">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-[15px] cursor-pointer pointer-events-auto drop-shadow-md hover:underline">
@@ -486,10 +826,7 @@ export default function VideoPage() {
                     </h3>
                     <Button
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFollow(reel.id, reel.authorId);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleFollow(reel.id); }}
                       className={`h-6 text-xs rounded-lg px-3 font-semibold pointer-events-auto transition-all duration-300 active:scale-95 drop-shadow-md ${
                         reel.isFollowed
                           ? "bg-white text-black hover:bg-white/90 border border-white"
@@ -513,17 +850,33 @@ export default function VideoPage() {
             ))
           )}
         </div>
+
+        {/* Mobile Comments Modal */}
+        {!isDesktop && selectedCommentReelId && currentUser && (
+          <CommentsModal
+            reelId={selectedCommentReelId}
+            isOpen={!!selectedCommentReelId}
+            onClose={() => setSelectedCommentReelId(null)}
+            currentUserId={currentUser.id}
+          />
+        )}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5]">
+    <div className="h-screen overflow-hidden bg-[#F0F2F5]">
       <Header />
       <PageGrid
-        left={null} // Left sidebar removed
+        left={null}
         center={<ReelsFeed />}
-        right={null}
+        right={isDesktop && selectedCommentReelId && currentUser ? (
+          <CommentsPanel
+            reelId={selectedCommentReelId}
+            onClose={() => setSelectedCommentReelId(null)}
+            currentUserId={currentUser.id}
+          />
+        ) : null}
       />
       <BottomNav />
     </div>
