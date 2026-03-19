@@ -10,9 +10,11 @@ export function BottomNav() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
-
+  const [userId, setUserId] = useState<string | null>(null);
   // Close menu when clicking outside
   useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    setUserId(userId);
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -27,7 +29,7 @@ export function BottomNav() {
     { icon: Users, label: "Community", href: "/communities" },
     { icon: Plus, label: "Create", href: "/create" },
     { icon: MessageSquare, label: "Messages", href: "/messages" },
-    { icon: User, label: "Profile", href: "/profile" },
+    { icon: User, label: "Profile", href: `/profile/${userId}` },
   ];
 
   // Animation variants

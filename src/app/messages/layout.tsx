@@ -87,7 +87,7 @@ export default function MessagesLayout({
     );
 
     return (
-        <div className="bg-[#F0F2F5] h-dvh flex flex-col overflow-hidden pb-16 md:pb-0 pt-16 md:pt-20">
+        <div className="bg-[#F0F2F5] h-dvh flex flex-col overflow-hidden md:pb-0 pt-16 md:pt-20">
             <Header />
 
             <div className="flex-1 min-h-0 w-full">
