@@ -59,8 +59,10 @@ export default function CreatePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic validation: at least content or file must be present
     if (!content.trim() && !selectedFile) {
-      toast.error("Please add content or a file");
+      toast.error("Please add some content or a media file");
       return;
     }
 
@@ -70,6 +72,7 @@ export default function CreatePage() {
     }
 
     setIsLoading(true);
+
     try {
       const token = localStorage.getItem("auth_token");
       if (!token) {
@@ -78,53 +81,90 @@ export default function CreatePage() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("content", content);
-      formData.append("type", activeTab);
+      let mediaUrl: string | null = null;
 
+      // Step 1: Upload to Cloudinary if a file is selected
       if (selectedFile && mediaType) {
-        formData.append(mediaType, selectedFile);
-        // Note: Backend should handle the actual clipping if duration > 60
-        if (activeTab === "reel") {
-          formData.append("isReel", "true");
+        const cloudForm = new FormData();
+        cloudForm.append("file", selectedFile);
+        cloudForm.append("upload_preset", "medias");
+
+        // Folder based on type
+        const folder =
+          mediaType === "video"
+            ? activeTab === "reel"
+              ? "reels"
+              : "videos"
+            : mediaType === "image"
+            ? "images"
+            : "audio";
+
+        cloudForm.append("folder", folder);
+
+        if (mediaType === "video") {
+          cloudForm.append("resource_type", "video");
         }
+        cloudForm.append("quality", "auto");
+
+        const uploadUrl =
+          mediaType === "video"
+            ? "https://api.cloudinary.com/v1_1/dskxvlrhq/video/upload"
+            : mediaType === "image"
+            ? "https://api.cloudinary.com/v1_1/dskxvlrhq/image/upload"
+            : "https://api.cloudinary.com/v1_1/dskxvlrhq/raw/upload";
+
+        const uploadRes = await fetch(uploadUrl, {
+          method: "POST",
+          body: cloudForm,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload media to Cloudinary");
+        }
+
+        const uploadData = await uploadRes.json();
+        mediaUrl = uploadData.secure_url;
+        console.log("✅ Cloudinary upload successful:", mediaUrl);
       }
 
-      const endpoint = activeTab === "reel" ? ENDPOINTS.REELS : ENDPOINTS.POSTS;
+      // Step 2: Send to backend with the URL
+      const endpoint = activeTab === "reel" ? ENDPOINTS.REELS : ENDPOINTS.POSTS_URL;
+
+      // Build request body
+      const requestBody: any = {
+        content: content.trim() || null,
+      };
+
+      if (mediaUrl) {
+        if (mediaType === "image") requestBody.imageUrl = mediaUrl;
+        else if (mediaType === "video") requestBody.videoUrl = mediaUrl;
+        else if (mediaType === "audio") requestBody.audioUrl = mediaUrl;
+      }
+
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: formData,
+        body: JSON.stringify(requestBody),
       });
 
-      console.log("Post response status:", response.status);
-
-      const responseText = await response.text();
-      console.log("Post response body:", responseText);
-
-      let responseData = {};
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        console.log("Could not parse response as JSON");
-      }
+      const responseData = await response.json();
 
       if (response.ok) {
-        toast.success(`${activeTab === 'post' ? 'Post' : 'Reel'} created successfully!`);
+        toast.success(`${activeTab === "post" ? "Post" : "Reel"} created successfully!`);
         setContent("");
         setSelectedFile(null);
         setMediaType(null);
         setVideoDuration(null);
-        router.push(activeTab === 'post' ? "/home" : "/video");
+        router.push(activeTab === "post" ? "/home" : "/video");
       } else if (response.status === 401) {
         toast.error("Session expired. Please login again.");
         localStorage.removeItem("auth_token");
         router.push("/auth/login");
       } else {
-        console.error("Post creation error:", response.status, responseData);
-        const errorMsg = (responseData as any)?.message || (responseData as any)?.error || "Failed to create post";
+        const errorMsg = responseData.message || responseData.error || "Failed to create post";
         toast.error(errorMsg);
       }
     } catch (error) {
@@ -166,12 +206,12 @@ export default function CreatePage() {
                     type="button"
                     onClick={() => {
                       setActiveTab("post");
-                      if (mediaType !== "video") {
-                        // Keep selection if it's already compatible or reset if needed
-                      }
                     }}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${activeTab === "post" ? "bg-white shadow-sm text-[#800517] scale-100" : "text-slate-500 hover:text-slate-700 active:scale-95"
-                      }`}
+                    className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${
+                      activeTab === "post"
+                        ? "bg-white shadow-sm text-[#800517] scale-100"
+                        : "text-slate-500 hover:text-slate-700 active:scale-95"
+                    }`}
                   >
                     Post
                   </button>
@@ -185,8 +225,11 @@ export default function CreatePage() {
                         toast.info("Switched to Reel: Only videos allowed");
                       }
                     }}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${activeTab === "reel" ? "bg-white shadow-sm text-[#800517] scale-100" : "text-slate-500 hover:text-slate-700 active:scale-95"
-                      }`}
+                    className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-bold rounded-lg transition-all duration-300 ${
+                      activeTab === "reel"
+                        ? "bg-white shadow-sm text-[#800517] scale-100"
+                        : "text-slate-500 hover:text-slate-700 active:scale-95"
+                    }`}
                   >
                     Reel
                   </button>
@@ -199,7 +242,11 @@ export default function CreatePage() {
                 {/* Text Input */}
                 <div>
                   <Textarea
-                    placeholder={activeTab === "post" ? "What's on your mind? Share your thoughts, testimonies, or inspirations..." : "Write a caption for your reel..."}
+                    placeholder={
+                      activeTab === "post"
+                        ? "What's on your mind? Share your thoughts, testimonies, or inspirations..."
+                        : "Write a caption for your reel..."
+                    }
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     className="min-h-[160px] text-lg resize-none bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-slate-400 font-medium"
@@ -209,8 +256,13 @@ export default function CreatePage() {
                       {content.length} characters
                     </p>
                     {activeTab === "reel" && videoDuration && (
-                      <p className={`text-xs font-bold uppercase tracking-wider ${videoDuration > 60 ? 'text-orange-500' : 'text-slate-400'}`}>
-                        Duration: {Math.floor(videoDuration)}s {videoDuration > 60 ? '(Will be shortened)' : ''}
+                      <p
+                        className={`text-xs font-bold uppercase tracking-wider ${
+                          videoDuration > 60 ? "text-orange-500" : "text-slate-400"
+                        }`}
+                      >
+                        Duration: {Math.floor(videoDuration)}s{" "}
+                        {videoDuration > 60 ? "(Will be shortened)" : ""}
                       </p>
                     )}
                   </div>
@@ -221,15 +273,9 @@ export default function CreatePage() {
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between group transition-all hover:bg-slate-100">
                     <div className="flex items-center gap-4">
                       <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex items-center justify-center">
-                        {mediaType === "image" && (
-                          <Image className="h-6 w-6 text-blue-500" />
-                        )}
-                        {mediaType === "video" && (
-                          <Video className="h-6 w-6 text-[#800517]" />
-                        )}
-                        {mediaType === "audio" && (
-                          <Music className="h-6 w-6 text-emerald-500" />
-                        )}
+                        {mediaType === "image" && <Image className="h-6 w-6 text-blue-500" />}
+                        {mediaType === "video" && <Video className="h-6 w-6 text-[#800517]" />}
+                        {mediaType === "audio" && <Music className="h-6 w-6 text-emerald-500" />}
                       </div>
                       <div>
                         <p className="font-bold text-sm text-slate-800 truncate max-w-[200px] md:max-w-[300px]">
@@ -277,7 +323,11 @@ export default function CreatePage() {
                       </label>
                     )}
 
-                    <label className={`cursor-pointer group ${activeTab === "reel" ? "col-span-1 sm:col-span-3" : ""}`}>
+                    <label
+                      className={`cursor-pointer group ${
+                        activeTab === "reel" ? "col-span-1 sm:col-span-3" : ""
+                      }`}
+                    >
                       <input
                         type="file"
                         accept="video/*"
@@ -291,7 +341,9 @@ export default function CreatePage() {
                         <div className="bg-white p-2.5 rounded-full text-[#800517] shadow-sm group-hover:scale-110 transition-transform">
                           <Video className="h-5 w-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">{activeTab === "reel" ? "Select Video" : "Video"}</span>
+                        <span className="text-sm font-bold text-slate-700">
+                          {activeTab === "reel" ? "Select Video" : "Video"}
+                        </span>
                       </div>
                     </label>
 

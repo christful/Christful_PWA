@@ -31,10 +31,11 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { data, error, isLoading: apiLoading, mutate } = useApi<{ posts: Post[] }>(`${ENDPOINTS.POSTS}?limit=20`);
+  const { data, error, isLoading: apiLoading, mutate } = useApi<{ posts: Post[] }>(`${ENDPOINTS.POSTS_URL}?limit=20`);
 
   useEffect(() => {
     if (data) {
+      console.log(data, "getPostdatas")
       setPosts(data.posts || []);
       if (onDataLoaded) onDataLoaded();
     }

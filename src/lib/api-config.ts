@@ -29,8 +29,10 @@ export const ENDPOINTS = {
 
     // Posts
     POSTS: `${API_BASE_URL}/posts`,
+    POSTS_URL: `${API_BASE_URL}/api/post`,
     POST_DETAIL: (postId: string) => `${API_BASE_URL}/posts/${postId}`,
     LIKE_POST: (postId: string) => `${API_BASE_URL}/posts/${postId}/like`,
+    DELETE_POST: (postId: string) => `${API_BASE_URL}/posts/${postId}/like`,
     SAVE_POST: (postId: string) => `${API_BASE_URL}/posts/${postId}/save`,
     UNSAVE_POST: (postId: string) => `${API_BASE_URL}/posts/${postId}/save`,
     SAVED_POSTS: `${API_BASE_URL}/posts/saved`,

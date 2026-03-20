@@ -7,8 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   MessageCircle, Heart, Share2, Music2, Plus,
-  Bookmark, MoreHorizontal, Clapperboard, Users, Play, Pause,
-  ChevronUp, ChevronDown, Check, Volume2, VolumeX, X
+  MoreHorizontal, Play, Pause,
+  ChevronUp, ChevronDown, Volume2, VolumeX, X
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useApi } from "@/hooks/use-api";
@@ -74,7 +74,6 @@ interface VideoReel {
   createdAt?: string;
   isLiked: boolean;
   isFollowed: boolean;
-  isBookmarked: boolean;
   likeCount: number;
   commentCount: number;
   shareCount: number;
@@ -465,19 +464,17 @@ const ReelsFeed = memo(({
   selectedCommentReelId,
   setSelectedCommentReelId,
   handleLike,
-  handleFollow,
-  handleBookmark,
+  handleFollowToggle,
   handleShare,
   handleMoreOption
 }: {
   videoPosts: VideoReel[];
   isLoading: boolean;
-  currentUser: CurrentUser | null | undefined; // <-- FIX: allow undefined
+  currentUser: CurrentUser | null | undefined;
   selectedCommentReelId: string | null;
   setSelectedCommentReelId: (id: string | null) => void;
   handleLike: (reelId: string) => void;
-  handleFollow: (reelId: string) => void;
-  handleBookmark: (reelId: string) => void;
+  handleFollowToggle: (reelId: string, authorId: string, currentlyFollowed: boolean) => void;
   handleShare: (reelId: string) => void;
   handleMoreOption: (option: string, reelId: string) => void;
 }) => {
@@ -582,7 +579,7 @@ const ReelsFeed = memo(({
   }, []);
 
   return (
-    <div className="relative h-[calc(100vh-8rem)]">
+    <div className="relative h-[calc(100vh-4rem)]">
       {/* Up/Down Navigation Arrows */}
       <div className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 flex-col gap-3">
         <button
@@ -661,6 +658,7 @@ const ReelsFeed = memo(({
               </button>
 
               <div className="absolute right-3 bottom-10 flex flex-col gap-6 items-center z-10 pointer-events-auto">
+                {/* Avatar + Follow Plus */}
                 <div className="flex flex-col items-center">
                   <div className="h-10 w-10 rounded-full border-[1.5px] border-white overflow-hidden shadow-lg relative">
                     <Avatar className="h-full w-full">
@@ -670,14 +668,21 @@ const ReelsFeed = memo(({
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleBookmark(reel.id); }}
-                    className="bg-[#800517] rounded-full p-[2px] -mt-2.5 z-10 shadow-md border-2 border-black/80 hover:scale-110 transition-transform"
-                  >
-                    {reel.isBookmarked ? <Check size={10} className="text-white" /> : <Plus size={10} className="text-white" />}
-                  </button>
+                  {!reel.isFollowed && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFollowToggle(reel.id, reel.authorId, reel.isFollowed);
+                      }}
+                      className="bg-[#800517] rounded-full p-[2px] -mt-2.5 z-10 shadow-md border-2 border-black/80 hover:scale-110 transition-transform"
+                      aria-label="Follow user"
+                    >
+                      <Plus size={10} className="text-white" />
+                    </button>
+                  )}
                 </div>
 
+                {/* Like */}
                 <div className="flex flex-col items-center group">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleLike(reel.id); }}
@@ -692,6 +697,7 @@ const ReelsFeed = memo(({
                   <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.likeCount}</span>
                 </div>
 
+                {/* Comment */}
                 <div className="flex flex-col items-center group">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleComment(reel.id); }}
@@ -702,6 +708,7 @@ const ReelsFeed = memo(({
                   <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.commentCount}</span>
                 </div>
 
+                {/* Share */}
                 <div className="flex flex-col items-center group">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleShare(reel.id); }}
@@ -712,6 +719,7 @@ const ReelsFeed = memo(({
                   <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.shareCount}</span>
                 </div>
 
+                {/* More Options Dropdown */}
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === reel.id ? null : reel.id); }}
@@ -731,6 +739,7 @@ const ReelsFeed = memo(({
                   )}
                 </div>
 
+                {/* Rotating audio disc */}
                 <div className="h-8 w-8 rounded-md bg-white border-2 border-white/80 flex items-center justify-center overflow-hidden shadow-[0_0_10px_rgba(0,0,0,0.5)]">
                   <img
                     src={reel.authorAvatar || "https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=100&h=100&fit=crop"}
@@ -746,17 +755,16 @@ const ReelsFeed = memo(({
                   <h3 className="font-semibold text-[15px] cursor-pointer pointer-events-auto drop-shadow-md hover:underline">
                     {reel.author}
                   </h3>
-                  <Button
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleFollow(reel.id); }}
-                    className={`h-6 text-xs rounded-lg px-3 font-semibold pointer-events-auto transition-all duration-300 active:scale-95 drop-shadow-md ${
-                      reel.isFollowed
-                        ? "bg-white text-black hover:bg-white/90 border border-white"
-                        : "bg-transparent hover:bg-white/10 text-white border border-white"
-                    }`}
-                  >
-                    {reel.isFollowed ? "Following" : "Follow"}
-                  </Button>
+                  {/* Bottom follow button: only shown when following, disabled */}
+                  {reel.isFollowed && (
+                    <Button
+                      size="sm"
+                      disabled
+                      className="h-6 text-xs rounded-lg px-3 font-semibold pointer-events-auto opacity-70 cursor-not-allowed bg-white text-black border border-white"
+                    >
+                      Following
+                    </Button>
+                  )}
                 </div>
                 <p className="text-[14px] line-clamp-2 mb-3 text-white leading-relaxed max-w-sm drop-shadow-md font-medium">
                   {reel.description}
@@ -796,7 +804,7 @@ export default function VideoPage() {
 
   // Fetch current user
   const { data: currentUser, isLoading: userLoading, error: userError } = useApi<CurrentUser>(
-    ENDPOINTS.USER // e.g., "/auth/me"
+    ENDPOINTS.USER
   );
 
   // Fetch reels
@@ -813,10 +821,10 @@ export default function VideoPage() {
     setIsLoading(apiLoading || userLoading);
   }, [apiLoading, userLoading]);
 
-  // Transform data when both are ready
+  // Transform reels and fetch follow statuses
   useEffect(() => {
     if (data?.reels && currentUser) {
-      const videos = data.reels.map(post => {
+      const initialVideos = data.reels.map(post => {
         const isLiked = post.likes?.some(like => like.userId === currentUser.id) || false;
         return {
           id: post.id,
@@ -831,14 +839,40 @@ export default function VideoPage() {
           videoUrl: post.videoUrl!,
           createdAt: post.createdAt,
           isLiked,
-          isFollowed: false,
-          isBookmarked: false,
+          isFollowed: false, // will be updated
           likeCount: post.likes?.length || 0,
           commentCount: post.comments?.length || 0,
           shareCount: 0,
         };
       });
-      setVideoPosts(videos);
+
+      setVideoPosts(initialVideos);
+
+      // Fetch follow status for each unique author
+      const uniqueAuthorIds = [...new Set(initialVideos.map(v => v.authorId))];
+      Promise.all(
+        uniqueAuthorIds.map(async (authorId) => {
+          try {
+            const token = localStorage.getItem("auth_token");
+            const res = await fetch(ENDPOINTS.FOLLOW_STATUS?.(authorId) || `${ENDPOINTS.USER}/${authorId}/follow-status`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              return { authorId, isFollowed: data.isFollowing }; // assume API returns { isFollowing: boolean }
+            }
+          } catch (err) {
+            console.error("Failed to fetch follow status for", authorId);
+          }
+          return { authorId, isFollowed: false };
+        })
+      ).then(results => {
+        const followMap = Object.fromEntries(results.map(r => [r.authorId, r.isFollowed]));
+        setVideoPosts(prev => prev.map(reel => ({
+          ...reel,
+          isFollowed: followMap[reel.authorId] || false
+        })));
+      });
     }
   }, [data, currentUser]);
 
@@ -857,20 +891,37 @@ export default function VideoPage() {
     }));
   }, []);
 
-  const handleFollow = useCallback((reelId: string) => {
+  const handleFollowToggle = useCallback(async (reelId: string, authorId: string, currentlyFollowed: boolean) => {
+    // Optimistic update
     setVideoPosts(prev => prev.map(reel => {
-      if (reel.id === reelId) return { ...reel, isFollowed: !reel.isFollowed };
+      if (reel.id === reelId) {
+        return { ...reel, isFollowed: !currentlyFollowed };
+      }
       return reel;
     }));
-    setTimeout(() => toast.success("Follow toggled"), 300);
-  }, []);
 
-  const handleBookmark = useCallback((reelId: string) => {
-    setVideoPosts(prev => prev.map(reel => {
-      if (reel.id === reelId) return { ...reel, isBookmarked: !reel.isBookmarked };
-      return reel;
-    }));
-    setTimeout(() => toast.success("Bookmark updated"), 300);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const method = currentlyFollowed ? 'DELETE' : 'POST'; // unfollow if already followed, otherwise follow
+      const response = await fetch(ENDPOINTS.FOLLOW(authorId), {
+        method,
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Follow action failed');
+      }
+      toast.success(currentlyFollowed ? "Unfollowed" : "Followed");
+    } catch (err) {
+      // Revert on error
+      setVideoPosts(prev => prev.map(reel => {
+        if (reel.id === reelId) {
+          return { ...reel, isFollowed: currentlyFollowed };
+        }
+        return reel;
+      }));
+      toast.error("Failed to update follow status");
+    }
   }, []);
 
   const handleShare = useCallback((reelId: string) => {
@@ -895,8 +946,7 @@ export default function VideoPage() {
             selectedCommentReelId={selectedCommentReelId}
             setSelectedCommentReelId={setSelectedCommentReelId}
             handleLike={handleLike}
-            handleFollow={handleFollow}
-            handleBookmark={handleBookmark}
+            handleFollowToggle={handleFollowToggle}
             handleShare={handleShare}
             handleMoreOption={handleMoreOption}
           />

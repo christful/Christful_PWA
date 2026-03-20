@@ -368,7 +368,7 @@ export function PostCard({
         return videoUrl && (
           <div
             className={cn(
-              "relative w-full bg-black overflow-hidden aspect-video sm:aspect-auto sm:max-h-[600px] flex items-center justify-center group"
+              "relative w-full bg-black overflow-hidden aspect-video aspect-auto h-full flex items-center justify-center group"
             )}
           >
             <video
