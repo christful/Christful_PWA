@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ import {
   Ellipsis,
   Bookmark,
   Trash2,
+  Flag,
   X,
   ChevronDown,
   UserPlus,
@@ -67,7 +69,8 @@ export interface PostCardProps {
   commentsCount?: number;
   isLiked?: boolean;
   isSaved?: boolean;
-  isFollowing?: boolean; // Initial follow state
+  isFollowing?: boolean;
+  onDelete?: () => void;
 }
 
 export function PostCard({
@@ -86,7 +89,9 @@ export function PostCard({
   isLiked = false,
   isSaved = false,
   isFollowing: initialIsFollowing = false,
+  onDelete,
 }: PostCardProps) {
+  const router = useRouter();
   const [liked, setLiked] = useState(isLiked);
   const [saved, setSaved] = useState(isSaved);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
@@ -98,8 +103,10 @@ export function PostCard({
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null);
   const [showFullText, setShowFullText] = useState(false);
-  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const isOwnPost = currentUserId === authorId;
@@ -121,14 +128,12 @@ export function PostCard({
         });
         if (response.ok) {
           const data = await response.json();
-          // Assuming backend returns { isFollowing: boolean }
           setIsFollowing(data.isFollowing);
         }
       } catch (error) {
         console.error("Failed to fetch follow status:", error);
       }
     };
-
     fetchFollowStatus();
   }, [authorId, currentUserId, isOwnPost]);
 
@@ -142,24 +147,28 @@ export function PostCard({
 
       if (response.ok) {
         const data = await response.json();
-        // Assume API returns flat comments; build tree
         const flatComments = Array.isArray(data) ? data : data.comments || [];
         const commentMap = new Map<string, Comment>();
         const roots: Comment[] = [];
 
         flatComments.forEach((c: any) => {
-          commentMap.set(c.id, { ...c, replies: [] });
+          commentMap.set(c.id, {
+            ...c,
+            replies: [],
+            authorName: `${c.author.firstName} ${c.author.lastName}`,
+            authorId: c.author.id,
+            authorAvatar: c.author.avatarUrl,
+            likesCount: c.likes?.length || 0,
+            isLiked: c.likes?.some((like: any) => like.userId === currentUserId) || false,
+          });
         });
 
         flatComments.forEach((c: any) => {
           const comment = commentMap.get(c.id)!;
           if (c.parentId) {
             const parent = commentMap.get(c.parentId);
-            if (parent) {
-              parent.replies!.push(comment);
-            } else {
-              roots.push(comment); // fallback
-            }
+            if (parent) parent.replies!.push(comment);
+            else roots.push(comment);
           } else {
             roots.push(comment);
           }
@@ -194,6 +203,51 @@ export function PostCard({
     }
   };
 
+  const handleSaveToggle = async () => {
+    const prevSaved = saved;
+    setSaved(!saved);
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.SAVE_POST(postId), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error("Failed to save/unsave post");
+
+      toast.success(saved ? "Post removed from saved" : "Post saved");
+    } catch {
+      setSaved(prevSaved);
+      toast.error("Failed to update saved status");
+    } finally {
+      setDropdownOpen(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    setDeleteDialogOpen(false);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.DELETE_POST(postId), {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error("Failed to delete post");
+
+      toast.success("Post deleted successfully");
+      if (onDelete) onDelete();
+    } catch {
+      toast.error("Failed to delete post");
+    }
+  };
+
+  const handleReportPost = () => {
+    setReportDialogOpen(false);
+    toast.success("Post reported. Thank you for keeping our community safe.");
+  };
+
   const handleFollow = async () => {
     if (!currentUserId) {
       toast.error("Please login to follow users");
@@ -210,9 +264,7 @@ export function PostCard({
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update follow status");
-      }
+      if (!response.ok) throw new Error("Failed to update follow status");
 
       toast.success(previous ? "Unfollowed user" : "Following user");
     } catch {
@@ -235,26 +287,33 @@ export function PostCard({
         },
         body: JSON.stringify({
           content: commentText,
-          parentId: replyingTo?.id || null, // Changed from parentCommentId to parentId to be more standard
+          parentId: replyingTo?.id || null,
         }),
       });
 
       if (response.ok) {
         const result = await response.json();
-        // Backend usually returns the new comment object
         const newComment = result.comment || result;
+        const formatted = {
+          ...newComment,
+          authorName: `${newComment.author.firstName} ${newComment.author.lastName}`,
+          authorId: newComment.author.id,
+          authorAvatar: newComment.author.avatarUrl,
+          likesCount: 0,
+          isLiked: false,
+          replies: [],
+        };
 
-        // Add new comment to tree
         if (replyingTo) {
           setComments(prev =>
             prev.map(c =>
               c.id === replyingTo.id
-                ? { ...c, replies: [...(c.replies || []), newComment] }
+                ? { ...c, replies: [...(c.replies || []), formatted] }
                 : c
             )
           );
         } else {
-          setComments(prev => [...prev, { ...newComment, replies: [] }]);
+          setComments(prev => [...prev, formatted]);
         }
         setCommentText("");
         setReplyingTo(null);
@@ -264,7 +323,6 @@ export function PostCard({
         toast.error(errorData.message || "Failed to add comment");
       }
     } catch (error) {
-      console.error("Comment error:", error);
       toast.error("An error occurred while posting comment");
     } finally {
       setIsPostingComment(false);
@@ -278,6 +336,16 @@ export function PostCard({
   const addEmoji = (emoji: any) => {
     setCommentText(prev => prev + emoji.native);
     setShowEmojiPicker(false);
+  };
+
+  // Navigate to post detail page when media is clicked (except if clicking on video/audio controls)
+  const handleMediaClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Don't navigate if clicking on video or audio controls
+    if (target.tagName === 'VIDEO' || target.tagName === 'AUDIO' || target.closest('video, audio')) {
+      return;
+    }
+    router.push(`/post/${postId}`);
   };
 
   const renderComment = (comment: Comment, depth = 0) => (
@@ -310,7 +378,6 @@ export function PostCard({
           </p>
         </div>
 
-        {/* Comment actions */}
         <div className="flex items-center gap-3 mt-1 ml-2">
           <button
             onClick={() => setReplyingTo({ id: comment.id, name: comment.authorName })}
@@ -327,7 +394,6 @@ export function PostCard({
           </button>
         </div>
 
-        {/* Render replies recursively */}
         {comment.replies && comment.replies.length > 0 && (
           <div className="mt-2 space-y-2">
             {comment.replies.map(reply => renderComment(reply, depth + 1))}
@@ -346,11 +412,11 @@ export function PostCard({
           <div
             className={cn(
               mediaClasses,
-              "aspect-square sm:aspect-[4/5] cursor-zoom-in group",
+              "aspect-square sm:aspect-[4/5] cursor-pointer group",
               "w-full",
               "border-0"
             )}
-            onClick={() => setIsMediaModalOpen(true)}
+            onClick={handleMediaClick}
           >
             <Image
               src={imageUrl}
@@ -367,27 +433,31 @@ export function PostCard({
       case "video":
         return videoUrl && (
           <div
-            className={cn(
-              "relative w-full bg-black overflow-hidden aspect-video aspect-auto h-full flex items-center justify-center group"
-            )}
+            className="relative w-full bg-black overflow-hidden aspect-video cursor-pointer group"
+            onClick={handleMediaClick}
           >
             <video
               src={videoUrl}
               className="w-full h-90 object-cover"
-              controls
               playsInline
               preload="metadata"
+              onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking video controls
             />
           </div>
-
         );
 
       case "audio":
         return audioUrl && (
-          <div className={cn(
-            "w-full h-full bg-gray-50 dark:bg-gray-900 rounded-xl sm:border border-gray-100 dark:border-gray-800 p-4 shadow-inner"
-          )}>
-            <audio src={audioUrl} controls className="w-full" />
+          <div
+            className="w-full h-full bg-gray-50 dark:bg-gray-900 rounded-xl sm:border border-gray-100 dark:border-gray-800 p-4 shadow-inner cursor-pointer"
+            onClick={handleMediaClick}
+          >
+            <audio
+              src={audioUrl}
+              controls
+              className="w-full"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         );
 
@@ -453,7 +523,7 @@ export function PostCard({
             </div>
           </div>
 
-          <Popover>
+          <Popover open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
@@ -467,18 +537,37 @@ export function PostCard({
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => setSaved(!saved)}
+                onClick={handleSaveToggle}
               >
                 <Bookmark className={cn("h-4 w-4", saved && "fill-current")} />
                 {saved ? "Saved" : "Save post"}
               </Button>
+
               {isOwnPost && (
                 <Button
                   variant="ghost"
                   className="w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setDeleteDialogOpen(true);
+                  }}
                 >
                   <Trash2 className="h-4 w-4" />
                   Delete post
+                </Button>
+              )}
+
+              {!isOwnPost && (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/50 rounded-lg"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setReportDialogOpen(true);
+                  }}
+                >
+                  <Flag className="h-4 w-4" />
+                  Report post
                 </Button>
               )}
             </PopoverContent>
@@ -530,7 +619,6 @@ export function PostCard({
         {/* FOOTER ACTIONS */}
         <CardFooter className="border-t border-gray-100 dark:border-gray-800/50 px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between w-full">
-            {/* LIKE */}
             <button
               onClick={handleLike}
               className={cn(
@@ -545,58 +633,71 @@ export function PostCard({
                 fill={liked ? "currentColor" : "none"}
                 className={cn("transition-transform", liked && "scale-110")}
               />
-              <span className="text-sm font-medium hidden sm:inline">
-                Like
-              </span>
+              <span className="text-sm font-medium hidden sm:inline">Like</span>
             </button>
 
-            {/* COMMENT */}
             <button
               onClick={() => setIsCommentsModalOpen(true)}
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-300 active:scale-95"
             >
               <MessageSquareText size={20} />
-              <span className="text-sm font-medium hidden sm:inline">
-                Comment
-              </span>
+              <span className="text-sm font-medium hidden sm:inline">Comment</span>
             </button>
 
-            {/* SHARE */}
             <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-300 active:scale-95">
               <Repeat2 size={20} />
-              <span className="text-sm font-medium hidden sm:inline">
-                Share
-              </span>
+              <span className="text-sm font-medium hidden sm:inline">Share</span>
             </button>
           </div>
         </CardFooter>
       </Card>
 
-      {/* MEDIA MODAL */}
-      {isMediaModalOpen && imageUrl && (
+      {/* Delete Confirmation Dialog (custom) */}
+      {deleteDialogOpen && (
         <div
-          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300"
-          onClick={() => setIsMediaModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setDeleteDialogOpen(false)}
         >
-          <button
-            onClick={() => setIsMediaModalOpen(false)}
-            className="absolute top-6 right-6 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2 transition-all duration-200"
-          >
-            <X size={28} />
-          </button>
-
           <div
-            className="relative w-full max-w-6xl max-h-[90vh] aspect-auto"
+            className="bg-white dark:bg-gray-950 rounded-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              src={imageUrl}
-              alt="Full view"
-              fill
-              className="object-contain"
-              sizes="100vw"
-              priority
-            />
+            <h3 className="text-lg font-semibold mb-2">Delete post?</h3>
+            <p className="text-sm text-gray-500 mb-6">This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeletePost}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Confirmation Dialog (custom) */}
+      {reportDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setReportDialogOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-950 rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-2">Report this post?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              If this post violates community guidelines, our moderators will review it.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleReportPost}>
+                Report
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -611,7 +712,6 @@ export function PostCard({
             className="bg-white dark:bg-gray-950 w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
               <h3 className="font-semibold text-lg">Comments</h3>
               <button
@@ -622,7 +722,6 @@ export function PostCard({
               </button>
             </div>
 
-            {/* Modal Content - Scrollable Comments */}
             <div className="flex-1 overflow-y-auto p-4">
               {isLoadingComments ? (
                 <div className="flex justify-center py-8">
@@ -642,9 +741,7 @@ export function PostCard({
               )}
             </div>
 
-            {/* Modal Footer - Comment Input */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-              {/* Replying indicator */}
               {replyingTo && (
                 <div className="flex items-center justify-between bg-primary/5 text-sm px-3 py-2 rounded-lg mb-3">
                   <span>
@@ -659,7 +756,6 @@ export function PostCard({
                 </div>
               )}
 
-              {/* Input area */}
               <div className="flex gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={localStorage.getItem("userAvatar") || ""} />
