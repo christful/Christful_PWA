@@ -70,6 +70,7 @@ export interface PostCardProps {
   isLiked?: boolean;
   isSaved?: boolean;
   isFollowing?: boolean;
+  isReel?: boolean;               // New prop: indicates this is a reel
   onDelete?: () => void;
 }
 
@@ -89,6 +90,7 @@ export function PostCard({
   isLiked = false,
   isSaved = false,
   isFollowing: initialIsFollowing = false,
+  isReel = false,
   onDelete,
 }: PostCardProps) {
   const router = useRouter();
@@ -338,14 +340,109 @@ export function PostCard({
     setShowEmojiPicker(false);
   };
 
-  // Navigate to post detail page when media is clicked (except if clicking on video/audio controls)
-  const handleMediaClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    // Don't navigate if clicking on video or audio controls
-    if (target.tagName === 'VIDEO' || target.tagName === 'AUDIO' || target.closest('video, audio')) {
-      return;
+  // Navigate to post detail page (for images and regular videos)
+  const navigateToPost = () => {
+    router.push(`/posts/${postId}`);
+  };
+
+  // Navigate to reels page (for reel content)
+  const navigateToReels = () => {
+    router.push('/video');
+  };
+
+  const renderMedia = () => {
+    const mediaClasses = "relative w-full bg-gradient-to-br from-gray-900 to-black overflow-hidden";
+
+    switch (postType) {
+      case "image":
+        return imageUrl && (
+          <div
+            className={cn(
+              mediaClasses,
+              "aspect-square sm:aspect-[4/5] cursor-pointer group",
+              "w-full",
+              "border-0"
+            )}
+            onClick={navigateToPost}
+          >
+            <Image
+              src={imageUrl}
+              alt="Post content"
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="100vw"
+              priority={false}
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+          </div>
+        );
+
+      case "video":
+        if (isReel) {
+          return videoUrl && (
+            <div
+              className="relative w-full cursor-pointer group"
+              onClick={navigateToReels}
+            >
+              <div className="relative aspect-[9/16] bg-black">
+                <video
+                  src={videoUrl}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  playsInline
+                  preload="metadata"
+                  onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking video controls
+                />
+                {/* Reel badge */}
+                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-full">
+                  Reel
+                </div>
+                {/* Optional play icon overlay on hover */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="bg-white/20 rounded-full p-3 backdrop-blur-sm">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        } else {
+          // Regular video: 16:9 aspect ratio, navigates to post detail page
+          return videoUrl && (
+            <div
+              className="relative w-full bg-black overflow-hidden aspect-video cursor-pointer group"
+              onClick={navigateToPost}
+            >
+              <video
+                src={videoUrl}
+                className="w-full h-90 object-cover"
+                playsInline
+                preload="metadata"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          );
+        }
+
+      case "audio":
+        return audioUrl && (
+          <div
+            className="w-full h-full bg-gray-50 dark:bg-gray-900 rounded-xl sm:border border-gray-100 dark:border-gray-800 p-4 shadow-inner cursor-pointer"
+            onClick={navigateToPost}
+          >
+            <audio
+              src={audioUrl}
+              controls
+              className="w-full"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        );
+
+      default:
+        return null;
     }
-    router.push(`/post/${postId}`);
   };
 
   const renderComment = (comment: Comment, depth = 0) => (
@@ -402,69 +499,6 @@ export function PostCard({
       </div>
     </div>
   );
-
-  const renderMedia = () => {
-    const mediaClasses = "relative w-full bg-gradient-to-br from-gray-900 to-black overflow-hidden";
-
-    switch (postType) {
-      case "image":
-        return imageUrl && (
-          <div
-            className={cn(
-              mediaClasses,
-              "aspect-square sm:aspect-[4/5] cursor-pointer group",
-              "w-full",
-              "border-0"
-            )}
-            onClick={handleMediaClick}
-          >
-            <Image
-              src={imageUrl}
-              alt="Post content"
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-              sizes="100vw"
-              priority={false}
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-          </div>
-        );
-
-      case "video":
-        return videoUrl && (
-          <div
-            className="relative w-full bg-black overflow-hidden aspect-video cursor-pointer group"
-            onClick={handleMediaClick}
-          >
-            <video
-              src={videoUrl}
-              className="w-full h-90 object-cover"
-              playsInline
-              preload="metadata"
-              onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking video controls
-            />
-          </div>
-        );
-
-      case "audio":
-        return audioUrl && (
-          <div
-            className="w-full h-full bg-gray-50 dark:bg-gray-900 rounded-xl sm:border border-gray-100 dark:border-gray-800 p-4 shadow-inner cursor-pointer"
-            onClick={handleMediaClick}
-          >
-            <audio
-              src={audioUrl}
-              controls
-              className="w-full"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   return (
     <>
