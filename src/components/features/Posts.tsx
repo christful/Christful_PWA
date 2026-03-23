@@ -24,6 +24,8 @@ interface Post {
   likes?: any[];
   comments?: any[];
   createdAt?: string;
+  isSaved?: boolean;
+  isReel?: boolean;
 }
 
 export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
@@ -138,7 +140,9 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
                     audioUrl={post.audioUrl}
                     likesCount={post.likes?.length || 0}
                     commentsCount={post.comments?.length || 0}
+                    isSaved={post.isSaved}
                     isLiked={userHasLiked}
+                    isReel={post.isReel}
                   />
                 );
               })

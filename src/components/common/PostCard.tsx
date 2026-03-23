@@ -70,7 +70,7 @@ export interface PostCardProps {
   isLiked?: boolean;
   isSaved?: boolean;
   isFollowing?: boolean;
-  isReel?: boolean;               // New prop: indicates this is a reel
+  isReel?: boolean;               // ✅ important: tells the card this is a reel
   onDelete?: () => void;
 }
 
@@ -347,6 +347,7 @@ export function PostCard({
 
   // Navigate to reels page (for reel content)
   const navigateToReels = () => {
+    // Optionally pass the reel ID to highlight it: router.push(`/video?reel=${postId}`);
     router.push('/video');
   };
 
@@ -379,6 +380,7 @@ export function PostCard({
 
       case "video":
         if (isReel) {
+          // ✅ Reel preview: vertical aspect ratio + badge
           return videoUrl && (
             <div
               className="relative w-full cursor-pointer group"
@@ -390,13 +392,13 @@ export function PostCard({
                   className="absolute inset-0 w-full h-full object-cover"
                   playsInline
                   preload="metadata"
-                  onClick={(e) => e.stopPropagation()} // Prevent navigation when clicking video controls
+                  onClick={(e) => e.stopPropagation()}
                 />
                 {/* Reel badge */}
                 <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-full">
                   Reel
                 </div>
-                {/* Optional play icon overlay on hover */}
+                {/* Play icon on hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <div className="bg-white/20 rounded-full p-3 backdrop-blur-sm">
                     <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
