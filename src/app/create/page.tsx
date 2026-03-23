@@ -20,6 +20,7 @@ export default function CreatePage() {
   const [activeTab, setActiveTab] = useState<"post" | "reel">("post");
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const isReelMode = activeTab === "reel";
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
@@ -32,7 +33,7 @@ export default function CreatePage() {
   }, [router]);
 
   const handleFileSelect = (file: File, type: "image" | "video" | "audio") => {
-    if (activeTab === "reel" && type !== "video") {
+    if (isReelMode && type !== "video") {
       toast.error("Only videos can be posted as reels");
       return;
     }
@@ -44,7 +45,7 @@ export default function CreatePage() {
         window.URL.revokeObjectURL(video.src);
         const duration = video.duration;
         setVideoDuration(duration);
-        if (activeTab === "reel" && duration > 60) {
+        if (isReelMode && duration > 60) {
           toast.warning("Reels are limited to 1 minute. Your video will be shortened.");
         }
       }
@@ -66,7 +67,7 @@ export default function CreatePage() {
       return;
     }
 
-    if (activeTab === "reel" && mediaType !== "video") {
+    if (isReelMode && mediaType !== "video") {
       toast.error("A reel must be a video");
       return;
     }
@@ -92,7 +93,7 @@ export default function CreatePage() {
         // Folder based on type
         const folder =
           mediaType === "video"
-            ? activeTab === "reel"
+            ? isReelMode
               ? "reels"
               : "videos"
             : mediaType === "image"
@@ -128,12 +129,22 @@ export default function CreatePage() {
       }
 
       // Step 2: Send to backend with the URL
-      const endpoint = activeTab === "reel" ? ENDPOINTS.REELS : ENDPOINTS.POSTS_URL;
+      const endpoint = isReelMode ? ENDPOINTS.REELS : ENDPOINTS.POSTS_URL;
 
       // Build request body
       const requestBody: any = {
         content: content.trim() || null,
+        mediaType:
+          mediaType === null
+            ? "text"
+            : content.trim()
+            ? (`text_${mediaType}` as const)
+            : mediaType,
       };
+
+      if (mediaType === "video") {
+        requestBody.isReel = isReelMode;
+      }
 
       if (mediaUrl) {
         if (mediaType === "image") requestBody.imageUrl = mediaUrl;
@@ -153,12 +164,12 @@ export default function CreatePage() {
       const responseData = await response.json();
 
       if (response.ok) {
-        toast.success(`${activeTab === "post" ? "Post" : "Reel"} created successfully!`);
+        toast.success(`${isReelMode ? "Reel" : "Post"} created successfully!`);
         setContent("");
         setSelectedFile(null);
         setMediaType(null);
         setVideoDuration(null);
-        router.push(activeTab === "post" ? "/home" : "/video");
+        router.push(isReelMode ? "/video" : "/home");
       } else if (response.status === 401) {
         toast.error("Session expired. Please login again.");
         localStorage.removeItem("auth_token");
