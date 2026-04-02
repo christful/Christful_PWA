@@ -18,6 +18,7 @@ export default function CreatePage() {
   const [mediaType, setMediaType] = useState<"image" | "video" | "audio" | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"post" | "reel">("post");
+  const [videoUrlInput, setVideoUrlInput] = useState("");
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const isReelMode = activeTab === "reel";
@@ -60,29 +61,39 @@ export default function CreatePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Basic validation: at least content or file must be present
-    if (!content.trim() && !selectedFile) {
-      toast.error("Please add some content or a media file");
+    if (!content.trim() && !selectedFile && !videoUrlInput) {
+      toast.error("Please add content, a media file, or video URL");
       return;
     }
 
-    if (isReelMode && mediaType !== "video") {
-      toast.error("A reel must be a video");
-      return;
+    if (isReelMode) {
+      const hasVideoFile = selectedFile && mediaType === "video";
+      const hasVideoUrl = videoUrlInput.trim().length > 0;
+      if (!hasVideoFile && !hasVideoUrl) {
+        toast.error("Please provide a reel video or video URL");
+        return;
+      }
+      if (selectedFile && mediaType !== "video") {
+        toast.error("A reel must be a video");
+        return;
+      }
     }
 
     setIsLoading(true);
 
     try {
+      let mediaUrl: string | null = null;
       const token = localStorage.getItem("auth_token");
+
+      if (!selectedFile && isReelMode && videoUrlInput.trim()) {
+        mediaUrl = videoUrlInput.trim();
+      }
+
       if (!token) {
         toast.error("Authentication required");
         router.push("/auth/login");
         return;
       }
-
-      let mediaUrl: string | null = null;
 
       // Step 1: Upload to Cloudinary if a file is selected
       if (selectedFile && mediaType) {

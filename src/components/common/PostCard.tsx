@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -70,7 +70,6 @@ export interface PostCardProps {
   isLiked?: boolean;
   isSaved?: boolean;
   isFollowing?: boolean;
-  isReel?: boolean;               // ✅ important: tells the card this is a reel
   onDelete?: () => void;
 }
 
@@ -90,7 +89,6 @@ export function PostCard({
   isLiked = false,
   isSaved = false,
   isFollowing: initialIsFollowing = false,
-  isReel = false,
   onDelete,
 }: PostCardProps) {
   const router = useRouter();
@@ -98,6 +96,7 @@ export function PostCard({
   const [saved, setSaved] = useState(isSaved);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [currentLikesCount, setCurrentLikesCount] = useState(likesCount);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -250,6 +249,35 @@ export function PostCard({
     toast.success("Post reported. Thank you for keeping our community safe.");
   };
 
+  useEffect(() => {
+    if (!videoRef.current || !videoUrl) return;
+
+    const videoEl = videoRef.current;
+    videoEl.muted = true;
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          videoEl.play().catch(() => {
+            /* auto-play blocked, ignore */
+          });
+        } else {
+          videoEl.pause();
+          videoEl.currentTime = 0;
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersect, {
+      threshold: 0.6,
+    });
+
+    observer.observe(videoEl);
+    return () => {
+      observer.disconnect();
+    };
+  }, [videoUrl]);
+
   const handleFollow = async () => {
     if (!currentUserId) {
       toast.error("Please login to follow users");
@@ -332,7 +360,38 @@ export function PostCard({
   };
 
   const handleCommentLike = async (commentId: string) => {
-    toast.info("Comment like coming soon");
+    setComments((prev) => prev.map((comment) =>
+      comment.id === commentId
+        ? {
+            ...comment,
+            isLiked: !comment.isLiked,
+            likesCount: comment.isLiked ? Math.max((comment.likesCount || 0) - 1, 0) : (comment.likesCount || 0) + 1,
+          }
+        : comment
+    ));
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(ENDPOINTS.LIKE_COMMENT(commentId), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to like comment");
+    } catch (err) {
+      setComments((prev) => prev.map((comment) =>
+        comment.id === commentId
+          ? {
+              ...comment,
+              isLiked: !comment.isLiked,
+              likesCount: comment.isLiked ? Math.max((comment.likesCount || 0) - 1, 0) : (comment.likesCount || 0) + 1,
+            }
+          : comment
+      ));
+      toast.error("Failed to like comment");
+    }
   };
 
   const addEmoji = (emoji: any) => {
@@ -343,12 +402,6 @@ export function PostCard({
   // Navigate to post detail page (for images and regular videos)
   const navigateToPost = () => {
     router.push(`/posts/${postId}`);
-  };
-
-  // Navigate to reels page (for reel content)
-  const navigateToReels = () => {
-    // Optionally pass the reel ID to highlight it: router.push(`/video?reel=${postId}`);
-    router.push('/video');
   };
 
   const renderMedia = () => {
@@ -379,53 +432,23 @@ export function PostCard({
         );
 
       case "video":
-        if (isReel) {
-          // ✅ Reel preview: vertical aspect ratio + badge
-          return videoUrl && (
-            <div
-              className="relative w-full cursor-pointer group"
-              onClick={navigateToReels}
-            >
-              <div className="relative aspect-[9/16] bg-black">
-                <video
-                  src={videoUrl}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  playsInline
-                  preload="metadata"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                {/* Reel badge */}
-                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-full">
-                  Reel
-                </div>
-                {/* Play icon on hover */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <div className="bg-white/20 rounded-full p-3 backdrop-blur-sm">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        } else {
-          // Regular video: 16:9 aspect ratio, navigates to post detail page
-          return videoUrl && (
-            <div
-              className="relative w-full bg-black overflow-hidden aspect-video cursor-pointer group"
-              onClick={navigateToPost}
-            >
-              <video
-                src={videoUrl}
-                className="w-full h-90 object-cover"
-                playsInline
-                preload="metadata"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          );
-        }
+        // Treat video posts like images for navigation: go to post detail first.
+        return videoUrl && (
+          <div
+            className="relative w-full bg-black overflow-hidden aspect-video cursor-pointer group"
+            onClick={navigateToPost}
+          >
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              className="w-full h-full object-contain"
+              playsInline
+              preload="metadata"
+              muted
+              loop
+            />
+          </div>
+        );
 
       case "audio":
         return audioUrl && (

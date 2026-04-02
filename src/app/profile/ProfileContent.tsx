@@ -68,6 +68,9 @@ export default function ProfileContent() {
     const [isOwnProfile, setIsOwnProfile] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editData, setEditData] = useState({ bio: "" });
+    const [activeTab, setActiveTab] = useState<"POSTS" | "REELS" | "SAVED">("POSTS");
+    const [userReels, setUserReels] = useState<Post[]>([]);
+    const [savedUserPosts, setSavedUserPosts] = useState<Post[]>([]);
     const [uploading, setUploading] = useState(false);
 
     const params = useParams();
@@ -130,11 +133,23 @@ const { data: profileData, isLoading: userLoading, mutate: mutateUser } =
             setUser(profileData.user);
             setIsOwnProfile(profileData.relationship?.isSelf ?? profileData.user.id === localStorage.getItem("userId"));
         }
-    }, [profileData]);
 
-    useEffect(() => {
         if (profileData?.posts) {
             setUserPosts(profileData.posts || []);
+        } else {
+            setUserPosts([]);
+        }
+
+        if (profileData?.reels) {
+            setUserReels(profileData.reels || []);
+        } else {
+            setUserReels([]);
+        }
+
+        if (profileData?.savedPosts) {
+            setSavedUserPosts(profileData.savedPosts || []);
+        } else {
+            setSavedUserPosts([]);
         }
     }, [profileData]);
 
@@ -350,12 +365,13 @@ const { data: profileData, isLoading: userLoading, mutate: mutateUser } =
                 {/* Profile Tabs */}
                 <div className="border-t border-gray-200 dark:border-gray-800 flex justify-center -mt-[1px]">
                     <div className="flex gap-12 sm:gap-16">
-                        {['POSTS', 'REELS', 'SAVED'].map((tab, i) => (
+                        {(['POSTS', 'REELS', 'SAVED'] as const).map((tab) => (
                             <button
                                 key={tab}
+                                onClick={() => setActiveTab(tab)}
                                 className={cn(
                                     "py-4 text-xs font-bold tracking-widest transition-all duration-300 flex items-center gap-2 outline-none",
-                                    i === 0
+                                    activeTab === tab
                                         ? "text-gray-900 dark:text-white border-t-2 border-gray-900 dark:border-white"
                                         : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 border-t-2 border-transparent"
                                 )}
@@ -368,41 +384,47 @@ const { data: profileData, isLoading: userLoading, mutate: mutateUser } =
 
                 {/* Grid Content */}
                 <div className="grid grid-cols-3 gap-1 sm:gap-4 mt-1 sm:mt-4">
-                    {userPosts.length > 0 ? (
-                        userPosts.map((post) => (
-                            <div key={post.id} className="aspect-square bg-gray-100 dark:bg-gray-900 relative group overflow-hidden cursor-pointer sm:rounded-sm">
-                                {post.imageUrl ? (
-                                    <img src={post.imageUrl} alt="post" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                ) : post.videoUrl ? (
-                                    <video src={post.videoUrl} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
-                                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium line-clamp-4">{post.content}</p>
-                                    </div>
-                                )}
+                    {(() => {
+                        const items = activeTab === "POSTS" ? userPosts : activeTab === "REELS" ? userReels : savedUserPosts;
+                        return items.length > 0 ? (
+                            items.map((post) => (
+                                <div
+                                    key={post.id}
+                                    className="aspect-square bg-gray-100 dark:bg-gray-900 relative group overflow-hidden cursor-pointer sm:rounded-sm"
+                                    onClick={() => router.push(`/posts/${post.id}`)}
+                                >
+                                    {post.imageUrl ? (
+                                        <img src={post.imageUrl} alt="post" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                    ) : post.videoUrl ? (
+                                        <video src={post.videoUrl} className="w-full h-full object-cover" muted playsInline loop />
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium line-clamp-4">{post.content}</p>
+                                        </div>
+                                    )}
 
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white font-bold">
-                                    <div className="flex items-center gap-1.5 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                                        <svg fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
-                                        <span>{post.likes?.length || 0}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75">
-                                        <svg fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" /></svg>
-                                        <span>{post.comments?.length || 0}</span>
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white font-bold">
+                                        <div className="flex items-center gap-1.5 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                            <svg fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                                            <span>{post.likes?.length || 0}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 delay-75">
+                                            <svg fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" /></svg>
+                                            <span>{post.comments?.length || 0}</span>
+                                        </div>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="col-span-3 py-20 text-center flex flex-col items-center justify-center gap-4">
+                                <div className="h-16 w-16 border-2 border-gray-900 dark:border-white rounded-full flex items-center justify-center">
+                                    <Plus size={32} />
+                                </div>
+                                <h2 className="text-3xl font-light text-gray-900 dark:text-white">No {activeTab.toLowerCase()} yet</h2>
+                                <p className="text-sm font-medium text-gray-500">{activeTab === "POSTS" ? "Share photos and videos to appear here." : activeTab === "REELS" ? "No reels yet." : "No saved content yet."}</p>
                             </div>
-                        ))
-                    ) : (
-                        <div className="col-span-3 py-20 text-center flex flex-col items-center justify-center gap-4">
-                            <div className="h-16 w-16 border-2 border-gray-900 dark:border-white rounded-full flex items-center justify-center">
-                                <Plus size={32} />
-                            </div>
-                            <h2 className="text-3xl font-light text-gray-900 dark:text-white">Share Photos</h2>
-                            <p className="text-sm font-medium text-gray-500">When you share photos, they will appear on your profile.</p>
-                            {isOwnProfile && <span className="text-primary font-bold text-sm cursor-pointer hover:underline">Share your first photo</span>}
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
             </main>
 

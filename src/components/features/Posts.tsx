@@ -142,7 +142,7 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
                     commentsCount={post.comments?.length || 0}
                     isSaved={post.isSaved}
                     isLiked={userHasLiked}
-                    isReel={post.isReel}
+
                   />
                 );
               })

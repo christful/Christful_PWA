@@ -17,14 +17,21 @@ import { toast } from "sonner";
 
 // Inline useMediaQuery hook
 function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  );
+
   useEffect(() => {
     const media = window.matchMedia(query);
-    if (media.matches !== matches) setMatches(media.matches);
-    const listener = () => setMatches(media.matches);
-    window.addEventListener('resize', listener);
-    return () => window.removeEventListener('resize', listener);
-  }, [matches, query]);
+    const onChange = () => setMatches(media.matches);
+
+    // Sync once at mount in case the query was changed
+    onChange();
+
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, [query]);
+
   return matches;
 }
 
@@ -107,16 +114,17 @@ const CommentsPanel = ({
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data, error } = useApi<any>(
-    ENDPOINTS.POST_COMMENTS(reelId)
+  const { data, error } = useApi<any> (
+    `${ENDPOINTS.REEL_COMMENTS(reelId)}?page=1&limit=50`
   );
 
   useEffect(() => {
     if (data) {
-      const fetchedComments = data.map((c: any) => ({
+      const fetchedComments = data.comments ? data.comments.map((c: any) => ({
         id: c.id,
         content: c.content,
         createdAt: c.createdAt,
@@ -129,7 +137,7 @@ const CommentsPanel = ({
         likesCount: c.likes?.length || 0,
         isLiked: c.likes?.some((like: any) => like.userId === currentUserId) || false,
         repliesCount: c.replies?.length || 0
-      }));
+      })) : [];
       setComments(fetchedComments);
       setIsLoading(false);
     }
@@ -148,10 +156,13 @@ const CommentsPanel = ({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(ENDPOINTS.POST_COMMENTS(reelId), {
+      const response = await fetch(ENDPOINTS.REEL_COMMENTS(reelId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newComment })
+        body: JSON.stringify({
+          content: newComment,
+          ...(replyingToCommentId ? { parentCommentId: replyingToCommentId } : {}),
+        }),
       });
       if (!response.ok) throw new Error('Failed to post comment');
       const newCommentData = await response.json();
@@ -241,9 +252,19 @@ const CommentsPanel = ({
                     <Heart size={14} className={comment.isLiked ? "fill-[#ff3b5c] text-[#ff3b5c]" : ""} />
                     {comment.likesCount}
                   </button>
-                  <button className="text-xs text-gray-500 hover:text-gray-700">Reply</button>
+                  <button
+                    onClick={() => setReplyingToCommentId(prev => prev === comment.id ? null : comment.id)}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    {replyingToCommentId === comment.id ? "Cancel" : "Reply"}
+                  </button>
                 </div>
               </div>
+        {replyingToCommentId && (
+          <div className="mb-2 px-2 py-1 text-xs bg-slate-100 rounded-md text-slate-700">
+            Replying to comment {replyingToCommentId}. <button type="button" onClick={() => setReplyingToCommentId(null)} className="underline">Cancel</button>
+          </div>
+        )}
             </div>
           ))
         )}
@@ -488,7 +509,9 @@ const ReelsFeed = memo(({
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   useEffect(() => {
-    return () => Object.values(timeoutsRef.current).forEach(clearTimeout);
+    return () => {
+      Object.values(timeoutsRef.current).forEach(clearTimeout);
+    };
   }, []);
 
   // Auto-play with sound
@@ -527,12 +550,13 @@ const ReelsFeed = memo(({
 
   const handleVideoClick = (reelId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const video = videoRefs.current.get(reelId);
-    if (!video) return;
-
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     const lastTap = lastTapRef.current[reelId] || 0;
     const isDoubleTap = now - lastTap < 300;
+
+    const video = videoRefs.current.get(reelId);
+    if (!video) return;
 
     if (isDoubleTap) {
       handleLike(reelId);
@@ -547,6 +571,7 @@ const ReelsFeed = memo(({
       }
       lastTapRef.current[reelId] = now;
     }
+
     setOpenMenuId(null);
   };
 
@@ -867,28 +892,63 @@ export default function VideoPage() {
           return { authorId, isFollowed: false };
         })
       ).then(results => {
-        const followMap = Object.fromEntries(results.map(r => [r.authorId, r.isFollowed]));
+        const followMap = results.reduce<Record<string, boolean>>((map, item) => {
+          if (item && item.authorId) {
+            map[item.authorId] = item.isFollowed;
+          }
+          return map;
+        }, {});
+
         setVideoPosts(prev => prev.map(reel => ({
           ...reel,
-          isFollowed: followMap[reel.authorId] || false
+          isFollowed: followMap[reel.authorId] ?? reel.isFollowed,
         })));
+      }).catch((err) => {
+        console.error('Failed to resolve follow statuses', err);
       });
     }
   }, [data, currentUser]);
 
-  // Stable callbacks
-  const handleLike = useCallback((reelId: string) => {
+  const handleLike = useCallback(async (reelId: string) => {
+    let originalLiked = false;
+    let originalLikeCount = 0;
+
     setVideoPosts(prev => prev.map(reel => {
-      if (reel.id === reelId) {
-        const newLiked = !reel.isLiked;
-        return {
-          ...reel,
-          isLiked: newLiked,
-          likeCount: newLiked ? reel.likeCount + 1 : reel.likeCount - 1,
-        };
-      }
-      return reel;
+      if (reel.id !== reelId) return reel;
+      originalLiked = reel.isLiked;
+      originalLikeCount = reel.likeCount;
+      const newLiked = !reel.isLiked;
+      return {
+        ...reel,
+        isLiked: newLiked,
+        likeCount: newLiked ? reel.likeCount + 1 : Math.max(0, reel.likeCount - 1),
+      };
     }));
+
+    const reactionType = originalLiked ? 'unlike' : 'like';
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(ENDPOINTS.REEL_LIKE(reelId), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ reactionType }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update like status');
+      const result = await response.json();
+      if (result.status === 'error') throw new Error(result.message || 'Failed to update like status');
+    } catch (err) {
+      setVideoPosts(prev => prev.map(reel =>
+        reel.id === reelId
+          ? { ...reel, isLiked: originalLiked, likeCount: originalLikeCount }
+          : reel
+      ));
+      toast.error('Failed to update like status');
+    }
   }, []);
 
   const handleFollowToggle = useCallback(async (reelId: string, authorId: string, currentlyFollowed: boolean) => {

@@ -75,6 +75,7 @@ export default function PostDetailPage() {
   const postId = params.id as string;
 
   const [post, setPost] = useState<Post | null>(null);
+  const [isReel, setIsReel] = useState(false);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -97,12 +98,42 @@ export default function PostDetailPage() {
     const fetchPost = async () => {
       try {
         const token = localStorage.getItem("auth_token");
-        const res = await fetch(ENDPOINTS.POST_DETAIL(postId), {
+        let res = await fetch(ENDPOINTS.POST_DETAIL(postId), {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Failed to fetch post");
+
+        if (!res.ok) {
+          // fallback to reels API for reel IDs
+          res = await fetch(ENDPOINTS.REEL_DETAIL(postId), {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error("Failed to fetch post/reel");
+          const reelData = await res.json();
+          setIsReel(true);
+          const postFromReel = {
+            ...reelData,
+            mediaType: "video",
+            imageUrl: undefined,
+            audioUrl: undefined,
+            // ensure comments exists for the comments loader
+            comments: reelData.comments || [],
+            likes: reelData.likes || [],
+          };
+          setPost(postFromReel);
+          setLiked(reelData.isLiked || false);
+          setSaved(false);
+          setCurrentLikesCount(reelData.likes?.length || 0);
+
+          if (currentUserId && reelData.author?.id && reelData.author.id !== currentUserId) {
+            fetchFollowStatus(reelData.author.id);
+          }
+          return;
+        }
+
         const data = await res.json();
+        console.log("get post details",data)
         setPost(data);
+        setIsReel(false);
         setLiked(data.isLiked || false);
         setSaved(data.isSaved || false);
         setCurrentLikesCount(data.likes?.length || 0);
@@ -139,9 +170,12 @@ export default function PostDetailPage() {
   const fetchComments = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch(ENDPOINTS.COMMENTS(postId), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        isReel ? ENDPOINTS.REEL_COMMENTS(postId) : ENDPOINTS.COMMENTS(postId),
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (res.ok) {
         const data = await res.json();
         const flatComments = Array.isArray(data) ? data : data.comments || [];
@@ -183,7 +217,7 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     fetchComments();
-  }, [postId]);
+  }, [postId, isReel]);
 
   // Handlers
   const handleLike = async () => {
@@ -195,7 +229,8 @@ export default function PostDetailPage() {
 
     try {
       const token = localStorage.getItem("auth_token");
-      await fetch(ENDPOINTS.LIKE_POST(postId), {
+      const endpoint = isReel ? ENDPOINTS.REEL_LIKE(postId) : ENDPOINTS.LIKE_POST(postId);
+      await fetch(endpoint, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -207,6 +242,10 @@ export default function PostDetailPage() {
   };
 
   const handleSaveToggle = async () => {
+    if (isReel) {
+      toast.error("Saving reels is not supported.");
+      return;
+    }
     const prevSaved = saved;
     setSaved(!saved);
     try {
@@ -401,7 +440,7 @@ export default function PostDetailPage() {
 
           {/* Media section */}
           <div className="bg-black rounded-xl overflow-hidden mb-6">
-            {post.mediaType === "image" && post.imageUrl && (
+            {(post.mediaType === "image" || post.imageUrl) && post.imageUrl && (
               <div className="relative w-full aspect-video sm:aspect-video">
                 <Image
                   src={post.imageUrl}
@@ -413,7 +452,7 @@ export default function PostDetailPage() {
                 />
               </div>
             )}
-            {post.mediaType === "video" && post.videoUrl && (
+            {((post.mediaType === "video" || post.mediaType === "text_video") && post.videoUrl) && (
               <div className="relative w-full aspect-video">
                 <video
                   src={post.videoUrl}

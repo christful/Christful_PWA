@@ -40,7 +40,10 @@ export const ENDPOINTS = {
 
     // Reels
     REELS: `${API_BASE_URL}/reels`,
+    REEL_DETAIL: (reelId: string) => `${API_BASE_URL}/reels/${reelId}`,
     SUGGESTED_REELS: `${API_BASE_URL}/reels/suggested`,
+    REEL_LIKE: (reelId: string) => `${API_BASE_URL}/reels/${reelId}/like`,
+    REEL_COMMENTS: (reelId: string) => `${API_BASE_URL}/reels/${reelId}/comments`,
 
     // Comments
     COMMENTS: (postId: string) => `${API_BASE_URL}/posts/${postId}/comments`,
