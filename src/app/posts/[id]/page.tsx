@@ -471,8 +471,8 @@ export default function PostDetailPage() {
 
           {/* Title / content */}
           <div className="mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              {post.content || "Untitled"}
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              {post.content}
             </h1>
             <p className="text-sm text-gray-500">
               {formatRelativeTime(post.createdAt)}

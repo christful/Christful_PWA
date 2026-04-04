@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { FileVideo2, AudioLines, Text as TextIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Search, FileVideo2, AudioLines, Text as TextIcon } from "lucide-react";
 import { PostCard } from "@/components/common/PostCard";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
@@ -28,57 +29,131 @@ interface Post {
   isReel?: boolean;
 }
 
+type FeedItem = Post & {
+  isReel?: boolean;
+};
+
+interface ReelsResponse {
+  reels: Post[];
+  total?: number;
+  page?: number;
+  totalPages?: number;
+}
+
 export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   const [activeTab, setActiveTab] = useState("All");
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { data, error, isLoading: apiLoading, mutate } = useApi<{ posts: Post[] }>(`${ENDPOINTS.POSTS_URL}?limit=20`);
+  const {
+    data: postsData,
+    error: postsError,
+    isLoading: postsLoading,
+  } = useApi<{ posts: Post[] }>(`${ENDPOINTS.POSTS_URL}?limit=20`);
+
+  const {
+    data: reelsData,
+    error: reelsError,
+    isLoading: reelsLoading,
+  } = useApi<ReelsResponse>(`${ENDPOINTS.REELS}?limit=20`);
 
   useEffect(() => {
-    if (data) {
-      console.log(data, "getPostdatas")
-      setPosts(data.posts || []);
-      if (onDataLoaded) onDataLoaded();
+    const postItems: FeedItem[] = (postsData?.posts || []).map((post) => ({
+      ...post,
+      isReel: false,
+    }));
+
+    const reelItems: FeedItem[] = (reelsData?.reels || []).map((reel) => ({
+      ...reel,
+      isReel: true,
+    }));
+
+    const combinedFeed = mergeFeedItems(postItems, reelItems);
+    setFeedItems(combinedFeed);
+
+    if ((postsData?.posts?.length || reelItems.length) && onDataLoaded) {
+      onDataLoaded();
     }
-  }, [data, onDataLoaded]);
+  }, [postsData, reelsData, onDataLoaded]);
 
   useEffect(() => {
-    setIsLoading(apiLoading);
-  }, [apiLoading]);
+    setIsLoading(postsLoading || reelsLoading);
+  }, [postsLoading, reelsLoading]);
 
   useEffect(() => {
-    if (error) {
-      console.error("Error loading posts:", error);
-      toast.error("Failed to load posts");
+    if (postsError || reelsError) {
+      console.error("Error loading feed:", postsError || reelsError);
+      toast.error("Failed to load feed. Please refresh.");
     }
-  }, [error]);
+  }, [postsError, reelsError]);
 
-  const fetchPosts = async () => {
-    await mutate();
+  const mergeFeedItems = (posts: FeedItem[], reels: FeedItem[]) => {
+    const sortedPosts = [...posts].sort((a, b) => {
+      return (new Date(b.createdAt || 0).getTime() || 0) - (new Date(a.createdAt || 0).getTime() || 0);
+    });
+    const sortedReels = [...reels].sort((a, b) => {
+      return (new Date(b.createdAt || 0).getTime() || 0) - (new Date(a.createdAt || 0).getTime() || 0);
+    });
+
+    const merged: FeedItem[] = [];
+    const postsQueue = [...sortedPosts];
+    const reelsQueue = [...sortedReels];
+
+    while (postsQueue.length || reelsQueue.length) {
+      const nextPosts = postsQueue.splice(0, 4);
+      merged.push(...nextPosts);
+      if (reelsQueue.length) {
+        merged.push(reelsQueue.shift()!);
+      }
+    }
+
+    if (!merged.length && reels.length) {
+      merged.push(...reels);
+    }
+
+    return merged;
   };
 
-  const getPostType = (post: Post): 'image' | 'video' | 'audio' | 'text' => {
+  const getPostType = (post: FeedItem): 'image' | 'video' | 'audio' | 'text' => {
     if (post.videoUrl) return 'video';
     if (post.audioUrl) return 'audio';
     if (post.imageUrl) return 'image';
     return 'text';
   };
 
-  const filteredPosts = posts.filter((post) => {
-    const postType = getPostType(post);
-    if (activeTab === "All") return true;
-    if (activeTab === "Video") return postType === "video";
-    if (activeTab === "Audio") return postType === "audio";
-    if (activeTab === "Text") return postType === "text";
-    return true;
-  });
+  const filteredItems = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return feedItems.filter((post) => {
+      const postType = getPostType(post);
+      if (activeTab === "Video" && postType !== "video") return false;
+      if (activeTab === "Audio" && postType !== "audio") return false;
+      if (activeTab === "Text" && postType !== "text") return false;
+
+      if (!normalizedQuery) return true;
+
+      const searchableText = `${post.author.firstName} ${post.author.lastName} ${post.content || ""}`.toLowerCase();
+      return searchableText.includes(normalizedQuery);
+    });
+  }, [feedItems, searchQuery, activeTab]);
 
   return (
     <div className="flex justify-center w-full md:px-0 scroll-smooth">
       <div className="w-full max-w-[500px] md:max-w-[600px] lg:max-w-[650px]">
-        {/* User requested removal of story section */}
-        <div className="flex justify-center sticky top-[60px] md:top-[80px] z-40 bg-[#FBFDFF]/80 dark:bg-black/80 backdrop-blur-md py-3 px-4 md:mx-0 md:px-0 border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+        <div className="sticky top-[60px] md:top-[80px] z-40 bg-[#FBFDFF]/90 dark:bg-black/90 backdrop-blur-md py-4 px-4 md:px-0 border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+          <div className="mb-3">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search posts, reels, creators..."
+                className="pl-11 text-sm"
+              />
+            </div>
+          </div>
+
           <div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-1 w-full justify-start md:justify-center">
             <Badge
               variant={activeTab === "All" ? "default" : "secondary"}
@@ -119,15 +194,15 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
-            ) : filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => {
+            ) : filteredItems.length > 0 ? (
+              filteredItems.map((post) => {
                 const postType = getPostType(post);
-                const userId = localStorage.getItem("userId");
+                const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
                 const userHasLiked = post.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
 
                 return (
                   <PostCard
-                    key={post.id}
+                    key={`${post.id}-${post.isReel ? "reel" : "post"}`}
                     postId={post.id}
                     postType={postType}
                     authorId={post.author.id}
@@ -142,13 +217,14 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
                     commentsCount={post.comments?.length || 0}
                     isSaved={post.isSaved}
                     isLiked={userHasLiked}
-
+                    isReel={post.isReel}
                   />
                 );
               })
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No posts yet. Be the first to share!</p>
+              <div className="text-center py-14 text-muted-foreground">
+                <p className="text-base font-medium">No posts or reels found.</p>
+                <p className="text-sm text-gray-500 mt-2">Try another search term or refresh the feed.</p>
               </div>
             )}
           </div>

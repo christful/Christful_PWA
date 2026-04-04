@@ -69,6 +69,7 @@ export interface PostCardProps {
   commentsCount?: number;
   isLiked?: boolean;
   isSaved?: boolean;
+  isReel?: boolean;
   isFollowing?: boolean;
   onDelete?: () => void;
 }
@@ -88,6 +89,7 @@ export function PostCard({
   commentsCount = 0,
   isLiked = false,
   isSaved = false,
+  isReel = false,
   isFollowing: initialIsFollowing = false,
   onDelete,
 }: PostCardProps) {
@@ -111,6 +113,10 @@ export function PostCard({
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const isOwnPost = currentUserId === authorId;
+  const commentsUrl = isReel ? ENDPOINTS.REEL_COMMENTS(postId) : ENDPOINTS.COMMENTS(postId);
+  const likeUrl = isReel ? ENDPOINTS.REEL_LIKE(postId) : ENDPOINTS.LIKE_POST(postId);
+  const canSavePost = !isReel;
+  const canDeletePost = isOwnPost && !isReel;
 
   // Fetch follow status and comments when modal opens
   useEffect(() => {
@@ -142,7 +148,7 @@ export function PostCard({
     try {
       setIsLoadingComments(true);
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.COMMENTS(postId), {
+      const response = await fetch(commentsUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -193,7 +199,7 @@ export function PostCard({
 
     try {
       const token = localStorage.getItem("auth_token");
-      await fetch(ENDPOINTS.LIKE_POST(postId), {
+      await fetch(likeUrl, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -205,6 +211,12 @@ export function PostCard({
   };
 
   const handleSaveToggle = async () => {
+    if (isReel) {
+      toast.error("Saving reels is not supported.");
+      setDropdownOpen(false);
+      return;
+    }
+
     const prevSaved = saved;
     setSaved(!saved);
 
@@ -309,7 +321,7 @@ export function PostCard({
     try {
       setIsPostingComment(true);
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.POST_COMMENTS(postId), {
+      const response = await fetch(commentsUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -541,7 +553,7 @@ export function PostCard({
             </Link>
 
             <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={`/profile/${authorId}`}
                   className="hover:text-primary transition-colors"
@@ -550,6 +562,11 @@ export function PostCard({
                     {authorName}
                   </span>
                 </Link>
+                {isReel && (
+                  <span className="rounded-full bg-primary/10 text-primary px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
+                    Reel
+                  </span>
+                )}
                 {!isOwnPost && (
                   <Button
                     variant="ghost"
@@ -602,7 +619,7 @@ export function PostCard({
                 {saved ? "Saved" : "Save post"}
               </Button>
 
-              {isOwnPost && (
+              {canDeletePost && (
                 <Button
                   variant="ghost"
                   className="w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg"

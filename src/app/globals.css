@@ -117,12 +117,50 @@
 }
 
 @layer base {
+  html {
+    font-size: 0.875rem; /* 14px base for a tighter layout like Instagram */
+    line-height: 1.4;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
 
   body {
     @apply bg-background text-foreground overflow-x-hidden;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+  }
+
+  p, span, button, input, textarea, label, a {
+    font-size: 0.9rem;
+  }
+
+  button,
+  a,
+  [role="button"],
+  .cursor-pointer,
+  .cta,
+  .interactive,
+  [data-clickable="true"] {
+    cursor: pointer;
+  }
+
+  button:hover,
+  a:hover,
+  [role="button"]:hover,
+  .cursor-pointer:hover,
+  .cta:hover,
+  .interactive:hover {
+    cursor: pointer;
   }
 }
 

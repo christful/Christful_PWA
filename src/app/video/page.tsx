@@ -6,11 +6,12 @@ import { PageGrid } from "@/components/common/PageGrid";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  MessageCircle, Heart, Share2, Music2, Plus,
-  MoreHorizontal, Play, Pause,
+  MessageCircle, Heart, Share2, Music2,
+  Play, Pause,
   ChevronUp, ChevronDown, Volume2, VolumeX, X
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
@@ -401,7 +402,7 @@ const CommentsModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col"
+        className="bg-white w-full sm:max-w-lg sm:rounded-2xl max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b flex items-center justify-between">
@@ -487,7 +488,6 @@ const ReelsFeed = memo(({
   handleLike,
   handleFollowToggle,
   handleShare,
-  handleMoreOption
 }: {
   videoPosts: VideoReel[];
   isLoading: boolean;
@@ -497,16 +497,15 @@ const ReelsFeed = memo(({
   handleLike: (reelId: string) => void;
   handleFollowToggle: (reelId: string, authorId: string, currentlyFollowed: boolean) => void;
   handleShare: (reelId: string) => void;
-  handleMoreOption: (option: string, reelId: string) => void;
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [iconStates, setIconStates] = useState<{ [key: string]: { show: boolean; type: 'play' | 'pause' | 'heart' } }>({});
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [mutedStates, setMutedStates] = useState<{ [key: string]: boolean }>({});
   const timeoutsRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
   const lastTapRef = useRef<{ [key: string]: number }>({});
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const lsDesktop = useMediaQuery("(min-width: 768px)");
+  const router = useRouter();
 
   useEffect(() => {
     return () => {
@@ -571,8 +570,6 @@ const ReelsFeed = memo(({
       }
       lastTapRef.current[reelId] = now;
     }
-
-    setOpenMenuId(null);
   };
 
   const handleComment = (reelId: string) => {
@@ -594,17 +591,12 @@ const ReelsFeed = memo(({
     const reelHeight = container.clientHeight;
     const newScroll = direction === 'down' ? currentScroll + reelHeight : currentScroll - reelHeight;
     container.scrollTo({ top: newScroll, behavior: 'smooth' });
-    setOpenMenuId(null);
   };
 
-  useEffect(() => {
-    const handleClickOutside = () => setOpenMenuId(null);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  const reelContainerHeight = lsDesktop ? "h-[calc(100vh-5rem)]" : "h-[calc(100vh-5rem)]";
 
   return (
-    <div className="relative h-[calc(100vh-4rem)]">
+    <div className={`relative ${reelContainerHeight}`}>
       {/* Up/Down Navigation Arrows */}
       <div className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 flex-col gap-3">
         <button
@@ -623,7 +615,7 @@ const ReelsFeed = memo(({
 
       <div
         ref={containerRef}
-        className="h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar rounded-2xl bg-black shadow-2xl relative"
+        className="h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black relative"
       >
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
@@ -637,7 +629,7 @@ const ReelsFeed = memo(({
           videoPosts.map((reel) => (
             <div
               key={reel.id}
-              className="h-full w-full snap-start relative bg-black flex flex-col justify-center items-center text-white"
+              className="relative h-full w-full snap-start overflow-hidden bg-black"
               onClick={(e) => handleVideoClick(reel.id, e)}
             >
               <video
@@ -656,14 +648,14 @@ const ReelsFeed = memo(({
                   }
                 }}
                 src={reel.videoUrl}
-                className="h-full max-w-full object-contain mx-auto"
+                className="absolute inset-0 w-full h-full object-contain"
                 loop
                 playsInline
                 preload="metadata"
                 controls={false}
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
               {iconStates[reel.id]?.show && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
@@ -683,29 +675,22 @@ const ReelsFeed = memo(({
               </button>
 
               <div className="absolute right-3 bottom-10 flex flex-col gap-6 items-center z-10 pointer-events-auto">
-                {/* Avatar + Follow Plus */}
-                <div className="flex flex-col items-center">
-                  <div className="h-10 w-10 rounded-full border-[1.5px] border-white overflow-hidden shadow-lg relative">
-                    <Avatar className="h-full w-full">
-                      {reel.authorAvatar ? <AvatarImage src={reel.authorAvatar} /> : null}
-                      <AvatarFallback className="bg-primary text-white">
-                        {reel.author.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  {!reel.isFollowed && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFollowToggle(reel.id, reel.authorId, reel.isFollowed);
-                      }}
-                      className="bg-[#800517] rounded-full p-[2px] -mt-2.5 z-10 shadow-md border-2 border-black/80 hover:scale-110 transition-transform"
-                      aria-label="Follow user"
-                    >
-                      <Plus size={10} className="text-white" />
-                    </button>
-                  )}
-                </div>
+                {/* Avatar - Clickable to view profile */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/profile/${reel.authorId}`);
+                  }}
+                  className="h-10 w-10 rounded-full border-[1.5px] border-white overflow-hidden shadow-lg relative hover:opacity-80 transition-opacity"
+                  aria-label="View profile"
+                >
+                  <Avatar className="h-full w-full">
+                    {reel.authorAvatar ? <AvatarImage src={reel.authorAvatar} /> : null}
+                    <AvatarFallback className="bg-primary text-white">
+                      {reel.author.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
 
                 {/* Like */}
                 <div className="flex flex-col items-center group">
@@ -744,26 +729,6 @@ const ReelsFeed = memo(({
                   <span className="text-[12px] font-semibold text-white drop-shadow-md mt-1">{reel.shareCount}</span>
                 </div>
 
-                {/* More Options Dropdown */}
-                <div className="relative" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === reel.id ? null : reel.id); }}
-                    className="text-white hover:text-white/80 transition-all duration-300 active:scale-90 hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mb-2"
-                  >
-                    <MoreHorizontal size={26} strokeWidth={3} />
-                  </button>
-                  {openMenuId === reel.id && (
-                    <div
-                      className="absolute right-0 bottom-full mb-2 w-48 bg-black/90 backdrop-blur-md border border-white/20 rounded-lg shadow-xl z-30 py-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button onClick={() => handleMoreOption("Report", reel.id)} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10">Report</button>
-                      <button onClick={() => handleMoreOption("Not interested", reel.id)} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10">Not interested</button>
-                      <button onClick={() => handleMoreOption("Save to collection", reel.id)} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10">Save to collection</button>
-                    </div>
-                  )}
-                </div>
-
                 {/* Rotating audio disc */}
                 <div className="h-8 w-8 rounded-md bg-white border-2 border-white/80 flex items-center justify-center overflow-hidden shadow-[0_0_10px_rgba(0,0,0,0.5)]">
                   <img
@@ -780,7 +745,6 @@ const ReelsFeed = memo(({
                   <h3 className="font-semibold text-[15px] cursor-pointer pointer-events-auto drop-shadow-md hover:underline">
                     {reel.author}
                   </h3>
-                  {/* Bottom follow button: only shown when following, disabled */}
                   {reel.isFollowed && (
                     <Button
                       size="sm"
@@ -807,7 +771,7 @@ const ReelsFeed = memo(({
       </div>
 
       {/* Mobile Comments Modal */}
-      {!isDesktop && selectedCommentReelId && currentUser && (
+      {!lsDesktop && selectedCommentReelId && currentUser && (
         <CommentsModal
           reelId={selectedCommentReelId}
           isOpen={!!selectedCommentReelId}
@@ -989,10 +953,6 @@ export default function VideoPage() {
     toast.success("Link copied to clipboard!");
   }, []);
 
-  const handleMoreOption = useCallback((option: string, reelId: string) => {
-    toast.info(`${option} for reel ${reelId}`);
-  }, []);
-
   return (
     <div className="h-screen overflow-hidden bg-[#F0F2F5]">
       <Header />
@@ -1008,7 +968,6 @@ export default function VideoPage() {
             handleLike={handleLike}
             handleFollowToggle={handleFollowToggle}
             handleShare={handleShare}
-            handleMoreOption={handleMoreOption}
           />
         }
         right={isDesktop && selectedCommentReelId && currentUser ? (
