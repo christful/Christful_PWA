@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, FileVideo2, AudioLines, Text as TextIcon } from "lucide-react";
+import { FileVideo2, AudioLines, Text as TextIcon } from "lucide-react";
 import { PostCard } from "@/components/common/PostCard";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
@@ -42,10 +41,8 @@ interface ReelsResponse {
 
 export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   const [activeTab, setActiveTab] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const {
     data: postsData,
     error: postsError,
@@ -123,37 +120,19 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   };
 
   const filteredItems = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
     return feedItems.filter((post) => {
       const postType = getPostType(post);
       if (activeTab === "Video" && postType !== "video") return false;
       if (activeTab === "Audio" && postType !== "audio") return false;
       if (activeTab === "Text" && postType !== "text") return false;
-
-      if (!normalizedQuery) return true;
-
-      const searchableText = `${post.author.firstName} ${post.author.lastName} ${post.content || ""}`.toLowerCase();
-      return searchableText.includes(normalizedQuery);
+      return true;
     });
-  }, [feedItems, searchQuery, activeTab]);
+  }, [feedItems, activeTab]);
 
   return (
     <div className="flex justify-center w-full md:px-0 scroll-smooth">
       <div className="w-full max-w-[500px] md:max-w-[600px] lg:max-w-[650px]">
         <div className="sticky top-[60px] md:top-[80px] z-40 bg-[#FBFDFF]/90 dark:bg-black/90 backdrop-blur-md py-4 px-4 md:px-0 border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
-          <div className="mb-3">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search posts, reels, creators..."
-                className="pl-11 text-sm"
-              />
-            </div>
-          </div>
-
           <div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-1 w-full justify-start md:justify-center">
             <Badge
               variant={activeTab === "All" ? "default" : "secondary"}
@@ -195,29 +174,29 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
             ) : filteredItems.length > 0 ? (
-              filteredItems.map((post) => {
-                const postType = getPostType(post);
+              filteredItems.map((item: any, index: number) => {
+                const postType = getPostType(item);
                 const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-                const userHasLiked = post.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
+                const userHasLiked = item.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
 
                 return (
                   <PostCard
-                    key={`${post.id}-${post.isReel ? "reel" : "post"}`}
-                    postId={post.id}
+                    key={`${item.id}-${item.isReel ? "reel" : "post"}`}
+                    postId={item.id}
                     postType={postType}
-                    authorId={post.author.id}
-                    authorName={`${post.author.firstName} ${post.author.lastName}`}
-                    authorAvatar={post.author.avatarUrl || ''}
-                    date={post.createdAt ? new Date(post.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
-                    textContent={post.content}
-                    imageUrl={post.imageUrl}
-                    videoUrl={post.videoUrl}
-                    audioUrl={post.audioUrl}
-                    likesCount={post.likes?.length || 0}
-                    commentsCount={post.comments?.length || 0}
-                    isSaved={post.isSaved}
+                    authorId={item.author.id}
+                    authorName={`${item.author.firstName} ${item.author.lastName}`}
+                    authorAvatar={item.author.avatarUrl || ''}
+                    date={item.createdAt ? new Date(item.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
+                    textContent={item.content}
+                    imageUrl={item.imageUrl}
+                    videoUrl={item.videoUrl}
+                    audioUrl={item.audioUrl}
+                    likesCount={item.likes?.length || 0}
+                    commentsCount={item.comments?.length || 0}
+                    isSaved={item.isSaved}
                     isLiked={userHasLiked}
-                    isReel={post.isReel}
+                    isReel={item.isReel}
                   />
                 );
               })

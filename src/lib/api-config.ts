@@ -56,6 +56,7 @@ export const ENDPOINTS = {
     // Communities
     COMMUNITIES: `${API_BASE_URL}/communities/user`,
     COMMUNITY_SEARCH: `${API_BASE_URL}/communities/search`,
+    SEARCH: `${API_BASE_URL}/search`,
     COMMUNITY_SUGGESTED: `${API_BASE_URL}/communities/suggested`,
     COMMUNITY_DETAIL: (communityId: string) => `${API_BASE_URL}/communities/${communityId}`,
     COMMUNITY_JOIN: (id: string) => `${API_BASE_URL}/communities/${id}/join`,

@@ -12,14 +12,22 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ENDPOINTS } from "@/lib/api-config";
 import { SideNav } from "@/components/features/SideNav";
-import { Router } from "next/router";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PostCard } from "@/components/common/PostCard";
 
 export function Header() {
   const [user, setUser] = useState<{ id?: string; firstName: string; lastName?: string; avatarUrl?: string } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const router = useRouter();
   const mobileNavItems = [
     { href: "/home", label: "Home", icon: House },
     { href: "/communities", label: "Communities", icon: Users },
@@ -80,12 +88,97 @@ export function Header() {
     }
   }, [fetchUserData, fetchNotificationCount]);
 
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const performSearch = async (query: string) => {
+    if (!query.trim()) return;
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${ENDPOINTS.SEARCH}?q=${encodeURIComponent(query)}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     setIsLoggedIn(false);
     setUser(null);
     window.location.reload();
     window.location.href = "/auth/login";
+  };
+
+  const handleResultClick = (item: any) => {
+    setIsModalOpen(false);
+    setSearchQuery("");
+    setSearchResults(null);
+    if (item.type === 'post') router.push(`/posts/${item.data.id}`);
+    else if (item.type === 'reel') router.push(`/video?id=${item.data.id}`);
+    else if (item.type === 'user') router.push(`/profile/${item.data.id}`);
+    else if (item.type === 'community') router.push(`/communities/${item.data.id}`);
+  };
+
+  const renderSearchResults = () => {
+    if (isLoading) {
+      return <Skeleton className="h-20 w-full" />;
+    }
+    if (!searchResults) return null;
+    const allResults = [
+      ...(searchResults.users || []).map((u: any) => ({ type: 'user', data: u })),
+      ...(searchResults.communities || []).map((c: any) => ({ type: 'community', data: c })),
+      ...(searchResults.posts || []).map((p: any) => ({ type: 'post', data: p })),
+      ...(searchResults.reels || []).map((r: any) => ({ type: 'reel', data: r })),
+    ];
+    return (
+      <div className="max-h-96 overflow-y-auto">
+        {allResults.map((item, index) => (
+          <div key={index} onClick={() => handleResultClick(item)} className="cursor-pointer">
+            {item.type === 'post' || item.type === 'reel' ? (
+              <PostCard
+                postId={item.data.id}
+                postType={item.data.videoUrl ? 'video' : item.data.audioUrl ? 'audio' : item.data.imageUrl ? 'image' : 'text'}
+                authorId={item.data.author?.id || ''}
+                authorName={`${item.data.author?.firstName || ''} ${item.data.author?.lastName || ''}`.trim()}
+                authorAvatar={item.data.author?.avatarUrl || ''}
+                date={item.data.createdAt ? new Date(item.data.createdAt).toLocaleDateString() : ''}
+                textContent={item.data.content}
+                imageUrl={item.data.imageUrl}
+                videoUrl={item.data.videoUrl}
+                audioUrl={item.data.audioUrl}
+                likesCount={item.data.likes?.length || 0}
+                commentsCount={item.data.comments?.length || 0}
+                isSaved={item.data.isSaved}
+                isLiked={item.data.isLiked}
+                isReel={item.type === 'reel'}
+              />
+            ) : (
+              <div className="p-2 border-b">
+                {item.type === 'user' && <div>{item.data.firstName} {item.data.lastName}</div>}
+                {item.type === 'community' && <div>{item.data.name}</div>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -99,12 +192,37 @@ export function Header() {
 
 
           <div className="relative hidden lg:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search sermons..."
-              className="pl-10 rounded-full w-48 xl:w-64 bg-slate-100 border-none"
-            />
+            <Popover open={isModalOpen && !isMobile} onOpenChange={setIsModalOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    aria-label="Search"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                  <Input
+                    type="search"
+                    placeholder="Search sermons..."
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                      if (event.target.value.trim()) {
+                        performSearch(event.target.value);
+                        setIsModalOpen(true);
+                      } else {
+                        setIsModalOpen(false);
+                      }
+                    }}
+                    className="pl-10 rounded-full w-48 xl:w-64 bg-slate-100 border-none"
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-96 p-0" align="start">
+                {renderSearchResults()}
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -128,7 +246,14 @@ export function Header() {
 
         {/* Right */}
         <div className="flex items-center gap-3 sm:gap-6">
-          <Search className="h-6 w-6 text-muted-foreground lg:hidden cursor-pointer hover:text-primary transition-all duration-300 hover:scale-110" />
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="h-6 w-6 text-muted-foreground lg:hidden cursor-pointer hover:text-primary transition-all duration-300 hover:scale-110"
+            aria-label="Search"
+          >
+            <Search className="h-6 w-6" />
+          </button>
 
           <Link href="/video" className="md:hidden group">
             <Clapperboard className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:scale-110" />
@@ -190,6 +315,34 @@ export function Header() {
           </Popover>
         </div>
       </div>
+
+      {/* Mobile Search Modal */}
+      {isModalOpen && isMobile && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col">
+          <div className="p-4 border-b flex items-center gap-2">
+            <Input
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value.trim()) {
+                  performSearch(e.target.value);
+                } else {
+                  setSearchResults(null);
+                }
+              }}
+              placeholder="Search..."
+              autoFocus
+              className="flex-1"
+            />
+            <button onClick={() => setIsModalOpen(false)} className="p-2">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {renderSearchResults()}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
