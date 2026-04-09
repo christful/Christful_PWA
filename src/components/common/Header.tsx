@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, House, Users, Plus, User, LogOut, Clapperboard, Menu, X, Mail } from "lucide-react";
+import { Search, House, Users, Plus, User, LogOut, Clapperboard, Menu, X, Mail, UserCircle, UsersRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -138,41 +138,97 @@ export function Header() {
 
   const renderSearchResults = () => {
     if (isLoading) {
-      return <Skeleton className="h-20 w-full" />;
+      return (
+        <div className="p-4 space-y-3">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      );
     }
+
     if (!searchResults) return null;
+
     const allResults = [
       ...(searchResults.users || []).map((u: any) => ({ type: 'user', data: u })),
       ...(searchResults.communities || []).map((c: any) => ({ type: 'community', data: c })),
       ...(searchResults.posts || []).map((p: any) => ({ type: 'post', data: p })),
       ...(searchResults.reels || []).map((r: any) => ({ type: 'reel', data: r })),
     ];
+
+    if (allResults.length === 0) {
+      return (
+        <div className="p-8 text-center text-muted-foreground">
+          <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No search results found</p>
+        </div>
+      );
+    }
+
     return (
       <div className="max-h-96 overflow-y-auto">
         {allResults.map((item, index) => (
-          <div key={index} onClick={() => handleResultClick(item)} className="cursor-pointer">
+          <div key={index} onClick={() => handleResultClick(item)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             {item.type === 'post' || item.type === 'reel' ? (
-              <PostCard
-                postId={item.data.id}
-                postType={item.data.videoUrl ? 'video' : item.data.audioUrl ? 'audio' : item.data.imageUrl ? 'image' : 'text'}
-                authorId={item.data.author?.id || ''}
-                authorName={`${item.data.author?.firstName || ''} ${item.data.author?.lastName || ''}`.trim()}
-                authorAvatar={item.data.author?.avatarUrl || ''}
-                date={item.data.createdAt ? new Date(item.data.createdAt).toLocaleDateString() : ''}
-                textContent={item.data.content}
-                imageUrl={item.data.imageUrl}
-                videoUrl={item.data.videoUrl}
-                audioUrl={item.data.audioUrl}
-                likesCount={item.data.likes?.length || 0}
-                commentsCount={item.data.comments?.length || 0}
-                isSaved={item.data.isSaved}
-                isLiked={item.data.isLiked}
-                isReel={item.type === 'reel'}
-              />
+              <div className="border-b border-gray-100 dark:border-gray-700">
+                <PostCard
+                  postId={item.data.id}
+                  postType={item.data.videoUrl ? 'video' : item.data.audioUrl ? 'audio' : item.data.imageUrl ? 'image' : 'text'}
+                  authorId={item.data.author?.id || ''}
+                  authorName={`${item.data.author?.firstName || ''} ${item.data.author?.lastName || ''}`.trim()}
+                  authorAvatar={item.data.author?.avatarUrl || ''}
+                  date={item.data.createdAt ? new Date(item.data.createdAt).toLocaleDateString() : ''}
+                  textContent={item.data.content}
+                  imageUrl={item.data.imageUrl}
+                  videoUrl={item.data.videoUrl}
+                  audioUrl={item.data.audioUrl}
+                  likesCount={item.data.likes?.length || 0}
+                  commentsCount={item.data.comments?.length || 0}
+                  isSaved={item.data.isSaved}
+                  isLiked={item.data.isLiked}
+                  isReel={item.type === 'reel'}
+                />
+              </div>
             ) : (
-              <div className="p-2 border-b">
-                {item.type === 'user' && <div>{item.data.firstName} {item.data.lastName}</div>}
-                {item.type === 'community' && <div>{item.data.name}</div>}
+              <div className="flex items-center gap-3 p-3 min-h-[48px] border-b border-gray-100 dark:border-gray-700">
+                <div className="flex-shrink-0">
+                  {item.type === 'user' && (
+                    item.data.avatarUrl ? (
+                      <img
+                        src={item.data.avatarUrl}
+                        alt={item.data.firstName}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle className="w-8 h-8 text-gray-400" />
+                    )
+                  )}
+                  {item.type === 'community' && (
+                    item.data.avatarUrl ? (
+                      <img
+                        src={item.data.avatarUrl}
+                        alt={item.data.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <UsersRound className="w-8 h-8 text-gray-400" />
+                    )
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+                    {item.type === 'user'
+                      ? `${item.data.firstName || ''} ${item.data.lastName || ''}`.trim() || item.data.username || 'Unknown User'
+                      : item.data.name || item.data.communityName || 'Unknown Community'
+                    }
+                  </div>
+                  {item.type === 'user' && item.data.username && (
+                    <div className="text-xs text-gray-500 truncate">@{item.data.username}</div>
+                  )}
+                  {item.type === 'community' && item.data.description && (
+                    <div className="text-xs text-gray-500 truncate">{item.data.description}</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -195,16 +251,10 @@ export function Header() {
             <Popover open={isModalOpen && !isMobile} onOpenChange={setIsModalOpen}>
               <PopoverTrigger asChild>
                 <div className="relative">
-                  <button
-                    type="button"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    aria-label="Search"
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     type="search"
-                    placeholder="Search sermons..."
+                    placeholder="Search Christful..."
                     value={searchQuery}
                     onChange={(event) => {
                       setSearchQuery(event.target.value);
@@ -213,13 +263,26 @@ export function Header() {
                         setIsModalOpen(true);
                       } else {
                         setIsModalOpen(false);
+                        setSearchResults(null);
                       }
                     }}
-                    className="pl-10 rounded-full w-48 xl:w-64 bg-slate-100 border-none"
+                    className="pl-10 pr-10 rounded-full w-64 bg-gray-100 dark:bg-gray-800 border-none h-10 focus:ring-2 focus:ring-blue-500"
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSearchResults(null);
+                        setIsModalOpen(false);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </PopoverTrigger>
-              <PopoverContent className="w-96 p-0" align="start">
+              <PopoverContent className="w-96 p-0 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg mt-2" align="start">
                 {renderSearchResults()}
               </PopoverContent>
             </Popover>
@@ -318,25 +381,35 @@ export function Header() {
 
       {/* Mobile Search Modal */}
       {isModalOpen && isMobile && (
-        <div className="fixed inset-0 bg-white z-50 flex flex-col">
-          <div className="p-4 border-b flex items-center gap-2">
-            <Input
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (e.target.value.trim()) {
-                  performSearch(e.target.value);
-                } else {
-                  setSearchResults(null);
-                }
+        <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col">
+          <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => {
+                setIsModalOpen(false);
+                setSearchQuery("");
+                setSearchResults(null);
               }}
-              placeholder="Search..."
-              autoFocus
-              className="flex-1"
-            />
-            <button onClick={() => setIsModalOpen(false)} className="p-2">
-              <X className="h-5 w-5" />
+              className="p-2 -ml-2"
+            >
+              <X className="h-5 w-5 text-gray-500" />
             </button>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim()) {
+                    performSearch(e.target.value);
+                  } else {
+                    setSearchResults(null);
+                  }
+                }}
+                placeholder="Search Christful..."
+                autoFocus
+                className="pl-10 bg-gray-100 dark:bg-gray-800 border-none rounded-full h-10"
+              />
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             {renderSearchResults()}
