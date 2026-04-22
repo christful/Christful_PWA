@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { FileVideo2, AudioLines, Text as TextIcon } from "lucide-react";
 import { PostCard } from "@/components/common/PostCard";
+import { ReelsGrid } from "@/components/common/ReelsGrid";
 import { ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
@@ -174,32 +176,77 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
             ) : filteredItems.length > 0 ? (
-              filteredItems.map((item: any, index: number) => {
-                const postType = getPostType(item);
-                const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-                const userHasLiked = item.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
+              <>
+                {/* Separate Reels and Regular Posts */}
+                {(() => {
+                  const regularPosts = filteredItems.filter(item => !item.isReel);
+                  const reels = filteredItems.filter(item => item.isReel);
+                  const output: ReactNode[] = [];
+                  let postIdx = 0;
+                  let reelIdx = 0;
+                  const POSTS_PER_BLOCK = 2;
+                  const REELS_PER_ROW = 2;
+                  let blockIndex = 0;
 
-                return (
-                  <PostCard
-                    key={`${item.id}-${item.isReel ? "reel" : "post"}`}
-                    postId={item.id}
-                    postType={postType}
-                    authorId={item.author.id}
-                    authorName={`${item.author.firstName} ${item.author.lastName}`}
-                    authorAvatar={item.author.avatarUrl || ''}
-                    date={item.createdAt ? new Date(item.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
-                    textContent={item.content}
-                    imageUrl={item.imageUrl}
-                    videoUrl={item.videoUrl}
-                    audioUrl={item.audioUrl}
-                    likesCount={item.likes?.length || 0}
-                    commentsCount={item.comments?.length || 0}
-                    isSaved={item.isSaved}
-                    isLiked={userHasLiked}
-                    isReel={item.isReel}
-                  />
-                );
-              })
+                  while (postIdx < regularPosts.length || reelIdx < reels.length) {
+                    const postsBlock: ReactNode[] = [];
+
+                    for (let i = 0; i < POSTS_PER_BLOCK && postIdx < regularPosts.length; i += 1, postIdx += 1) {
+                      const item = regularPosts[postIdx];
+                      const postType = getPostType(item);
+                      const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+                      const userHasLiked = item.likes?.some((like: any) => like.userId === userId || like.id === userId) || false;
+
+                      postsBlock.push(
+                        <PostCard
+                          key={`${item.id}-post`}
+                          postId={item.id}
+                          postType={postType}
+                          authorId={item.author.id}
+                          authorName={`${item.author.firstName} ${item.author.lastName}`}
+                          authorAvatar={item.author.avatarUrl || ''}
+                          date={item.createdAt ? new Date(item.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}
+                          textContent={item.content}
+                          imageUrl={item.imageUrl}
+                          videoUrl={item.videoUrl}
+                          audioUrl={item.audioUrl}
+                          likesCount={item.likes?.length || 0}
+                          commentsCount={item.comments?.length || 0}
+                          isSaved={item.isSaved}
+                          isLiked={userHasLiked}
+                          isReel={item.isReel}
+                        />
+                      );
+                    }
+
+                    if (postsBlock.length > 0) {
+                      output.push(
+                        <div key={`posts-block-${blockIndex}`} className="space-y-6">
+                          {postsBlock}
+                        </div>
+                      );
+                    }
+
+                    if (reelIdx < reels.length) {
+                      const rowReels = reels.slice(reelIdx, reelIdx + REELS_PER_ROW);
+                      reelIdx += rowReels.length;
+
+                      output.push(
+                        <ReelsGrid
+                          key={`reels-row-${blockIndex}`}
+                          reels={rowReels}
+                          showSeeMore={true}
+                          seeMoreUrl="/video"
+                        />
+                      );
+                    }
+
+                    blockIndex += 1;
+                  }
+
+                  return <>{output}</>;
+                })()}
+              </>
             ) : (
               <div className="text-center py-14 text-muted-foreground">
                 <p className="text-base font-medium">No posts or reels found.</p>

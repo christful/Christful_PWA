@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/popover";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { CustomAudioPlayer } from '@/components/common/CustomAudioPlayer';
 
 // Types for comment (including replies)
 interface Comment {
@@ -464,17 +465,11 @@ export function PostCard({
 
       case "audio":
         return audioUrl && (
-          <div
-            className="w-full h-full bg-gray-50 dark:bg-gray-900 rounded-xl sm:border border-gray-100 dark:border-gray-800 p-4 shadow-inner cursor-pointer"
+          <CustomAudioPlayer
+            audioUrl={audioUrl}
             onClick={navigateToPost}
-          >
-            <audio
-              src={audioUrl}
-              controls
-              className="w-full"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+            thumbnailUrl={imageUrl}
+          />
         );
 
       default:

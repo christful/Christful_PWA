@@ -17,6 +17,7 @@ import { ENDPOINTS } from "@/lib/api-config";
 import { SideNav } from "@/components/features/SideNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostCard } from "@/components/common/PostCard";
+import { SearchResultsGrid } from "@/components/common/SearchResultsGrid";
 
 export function Header() {
   const [user, setUser] = useState<{ id?: string; firstName: string; lastName?: string; avatarUrl?: string } | null>(null);
@@ -149,14 +150,13 @@ export function Header() {
 
     if (!searchResults) return null;
 
-    const allResults = [
-      ...(searchResults.users || []).map((u: any) => ({ type: 'user', data: u })),
-      ...(searchResults.communities || []).map((c: any) => ({ type: 'community', data: c })),
-      ...(searchResults.posts || []).map((p: any) => ({ type: 'post', data: p })),
-      ...(searchResults.reels || []).map((r: any) => ({ type: 'reel', data: r })),
-    ];
+    const posts = [...(searchResults.posts || []), ...(searchResults.reels || [])];
+    const users = searchResults.users || [];
+    const communities = searchResults.communities || [];
 
-    if (allResults.length === 0) {
+    const hasResults = posts.length > 0 || users.length > 0 || communities.length > 0;
+
+    if (!hasResults) {
       return (
         <div className="p-8 text-center text-muted-foreground">
           <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -167,78 +167,99 @@ export function Header() {
 
     return (
       <div className="max-h-96 overflow-y-auto">
-        {allResults.map((item, index) => (
-          <div key={index} onClick={() => handleResultClick(item)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            {item.type === 'post' || item.type === 'reel' ? (
-              <div className="border-b border-gray-100 dark:border-gray-700">
-                <PostCard
-                  postId={item.data.id}
-                  postType={item.data.videoUrl ? 'video' : item.data.audioUrl ? 'audio' : item.data.imageUrl ? 'image' : 'text'}
-                  authorId={item.data.author?.id || ''}
-                  authorName={`${item.data.author?.firstName || ''} ${item.data.author?.lastName || ''}`.trim()}
-                  authorAvatar={item.data.author?.avatarUrl || ''}
-                  date={item.data.createdAt ? new Date(item.data.createdAt).toLocaleDateString() : ''}
-                  textContent={item.data.content}
-                  imageUrl={item.data.imageUrl}
-                  videoUrl={item.data.videoUrl}
-                  audioUrl={item.data.audioUrl}
-                  likesCount={item.data.likes?.length || 0}
-                  commentsCount={item.data.comments?.length || 0}
-                  isSaved={item.data.isSaved}
-                  isLiked={item.data.isLiked}
-                  isReel={item.type === 'reel'}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-3 min-h-[48px] border-b border-gray-100 dark:border-gray-700">
+        {/* Communities Section - FIRST */}
+        {communities.length > 0 && (
+          <div>
+            {communities.map((community: any, index: number) => (
+              <div
+                key={`community-${index}`}
+                onClick={() => handleResultClick({ type: 'community', data: community })}
+                className="flex items-center gap-3 p-3 min-h-[48px] border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
                 <div className="flex-shrink-0">
-                  {item.type === 'user' && (
-                    item.data.avatarUrl ? (
-                      <img
-                        src={item.data.avatarUrl}
-                        alt={item.data.firstName}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserCircle className="w-8 h-8 text-gray-400" />
-                    )
-                  )}
-                  {item.type === 'community' && (
-                    item.data.avatarUrl ? (
-                      <img
-                        src={item.data.avatarUrl}
-                        alt={item.data.name}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UsersRound className="w-8 h-8 text-gray-400" />
-                    )
+                  {community.avatarUrl ? (
+                    <img
+                      src={community.avatarUrl}
+                      alt={community.name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <UsersRound className="w-8 h-8 text-gray-400" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
-                    {item.type === 'user'
-                      ? `${item.data.firstName || ''} ${item.data.lastName || ''}`.trim() || item.data.username || 'Unknown User'
-                      : item.data.name || item.data.communityName || 'Unknown Community'
-                    }
+                    {community.name || community.communityName || 'Unknown Community'}
                   </div>
-                  {item.type === 'user' && item.data.username && (
-                    <div className="text-xs text-gray-500 truncate">@{item.data.username}</div>
-                  )}
-                  {item.type === 'community' && item.data.description && (
-                    <div className="text-xs text-gray-500 truncate">{item.data.description}</div>
+                  {community.description && (
+                    <div className="text-xs text-gray-500 truncate">{community.description}</div>
                   )}
                 </div>
               </div>
-            )}
+            ))}
           </div>
-        ))}
+        )}
+
+        {/* Users Section - SECOND */}
+        {users.length > 0 && (
+          <div>
+            {users.map((user: any, index: number) => (
+              <div
+                key={`user-${index}`}
+                onClick={() => handleResultClick({ type: 'user', data: user })}
+                className="flex items-center gap-3 p-3 min-h-[48px] border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.firstName}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserCircle className="w-8 h-8 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+                    {`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unknown User'}
+                  </div>
+                  {user.username && (
+                    <div className="text-xs text-gray-500 truncate">@{user.username}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Posts/Reels Grid - LAST */}
+        {posts.length > 0 && (
+          <div className="border-t border-gray-100 dark:border-gray-700">
+            <SearchResultsGrid
+              posts={posts}
+              onItemClick={(postId) => {
+                setIsModalOpen(false);
+                setSearchQuery("");
+                setSearchResults(null);
+                const post = posts.find((p: any) => p.id === postId);
+                const isReel = searchResults.reels?.some((r: any) => r.id === postId);
+                if (isReel) {
+                  router.push(`/video?id=${postId}`);
+                } else {
+                  router.push(`/posts/${postId}`);
+                }
+              }}
+            />
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 z-50 transition-all duration-300">
+    <>
+      <header className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 z-50 transition-all duration-300">
       <div className="max-w-full mx-auto flex items-center justify-between px-[10px] py-3">
         {/* Left */}
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -378,44 +399,47 @@ export function Header() {
           </Popover>
         </div>
       </div>
+    </header>
 
-      {/* Mobile Search Modal */}
-      {isModalOpen && isMobile && (
-        <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col">
-          <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => {
-                setIsModalOpen(false);
-                setSearchQuery("");
-                setSearchResults(null);
+    {/* Mobile Search Modal - Full Screen */}
+    {isModalOpen && isMobile && (
+      <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen bg-white dark:bg-gray-900 z-[100] flex flex-col overflow-hidden">
+        {/* Search Header */}
+        <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => {
+              setIsModalOpen(false);
+              setSearchQuery("");
+              setSearchResults(null);
+            }}
+            className="p-2 -ml-2 flex-shrink-0"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value.trim()) {
+                  performSearch(e.target.value);
+                } else {
+                  setSearchResults(null);
+                }
               }}
-              className="p-2 -ml-2"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value.trim()) {
-                    performSearch(e.target.value);
-                  } else {
-                    setSearchResults(null);
-                  }
-                }}
-                placeholder="Search Christful..."
-                autoFocus
-                className="pl-10 bg-gray-100 dark:bg-gray-800 border-none rounded-full h-10"
-              />
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {renderSearchResults()}
+              placeholder="Search Christful..."
+              autoFocus
+              className="pl-10 bg-gray-100 dark:bg-gray-800 border-none rounded-full h-10"
+            />
           </div>
         </div>
-      )}
-    </header>
-  );
-}
+        
+        {/* Search Results Container */}
+        <div className="flex-1 overflow-y-auto w-full">
+          {renderSearchResults()}
+        </div>
+      </div>
+    )}
+    </>
+  )}
