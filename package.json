@@ -19,6 +19,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@react-oauth/google": "^0.13.4",
     "@reduxjs/toolkit": "^2.11.2",
+    "@vercel/analytics": "^2.0.1",
     "axios": "^1.13.3",
     "biblesdk": "^1.0.0",
     "class-variance-authority": "^0.7.1",
