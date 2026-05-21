@@ -569,6 +569,19 @@ export default function LibraryPage() {
               <Button variant="outline" size="sm" onClick={() => setIsChapterModalOpen(true)}>
                 Change Chapter
               </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => {
+                  if (selectedBook && selectedChapter !== null && selectedChapter < selectedBook.chapters) {
+                    setSelectedChapter(selectedChapter + 1);
+                  }
+                }}
+                disabled={!selectedBook || !selectedChapter || selectedChapter >= (selectedBook?.chapters || 0)}
+                className="bg-[#800517] hover:bg-[#A31F34]"
+              >
+                Next Chapter →
+              </Button>
             </div>
           </div>
         </div>

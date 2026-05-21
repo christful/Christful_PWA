@@ -46,42 +46,89 @@ export default function MessageDetailPage() {
     const handleSendMessage = async (content: string, audio?: Blob, fileInfo?: { file: File; type: string }) => {
         if ((!content.trim() && !audio && !fileInfo) || !groupId) return;
 
+        const uploadMediaToCloudinary = async (file: File | Blob, type: 'image' | 'video' | 'audio') => {
+            const cloudForm = new FormData();
+            cloudForm.append('file', file);
+            cloudForm.append('upload_preset', 'medias');
+            const folder = type === 'video' ? 'chat-videos' : type === 'image' ? 'chat-images' : 'chat-audio';
+            cloudForm.append('folder', folder);
+            if (type === 'video') {
+                cloudForm.append('resource_type', 'video');
+            }
+            cloudForm.append('quality', 'auto');
+
+            const uploadUrl =
+                type === 'video'
+                    ? 'https://api.cloudinary.com/v1_1/dskxvlrhq/video/upload'
+                    : type === 'image'
+                    ? 'https://api.cloudinary.com/v1_1/dskxvlrhq/image/upload'
+                    : 'https://api.cloudinary.com/v1_1/dskxvlrhq/raw/upload';
+
+            const uploadRes = await fetch(uploadUrl, {
+                method: 'POST',
+                body: cloudForm,
+            });
+
+            if (!uploadRes.ok) {
+                throw new Error('Failed to upload media to Cloudinary');
+            }
+
+            const uploadData = await uploadRes.json();
+            return uploadData.secure_url as string;
+        };
+
         try {
-            const token = localStorage.getItem("auth_token");
-            const formData = new FormData();
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                toast.error('Authentication required');
+                return;
+            }
 
-            if (content.trim()) {
-                formData.append("content", content);
-            }
-            if (audio) {
-                formData.append("audio", audio, "voice-note.webm");
-            }
+            let mediaUrl: string | null = null;
+            let detectedMediaType: 'image' | 'video' | 'audio' | null = null;
+
             if (fileInfo) {
-                const fieldName = fileInfo.type === 'image' ? 'image' : fileInfo.type === 'video' ? 'video' : 'audio';
-                formData.append(fieldName, fileInfo.file);
+                detectedMediaType = fileInfo.type as 'image' | 'video' | 'audio';
+                mediaUrl = await uploadMediaToCloudinary(fileInfo.file, detectedMediaType);
             }
 
-            const response = await fetch(ENDPOINTS.GROUP_MESSAGES(groupId), {
-                method: "POST",
+            if (audio) {
+                detectedMediaType = 'audio';
+                mediaUrl = await uploadMediaToCloudinary(audio, 'audio');
+            }
+
+            const messageBody: any = {};
+            if (content.trim()) {
+                messageBody.content = content.trim();
+            }
+            if (mediaUrl && detectedMediaType) {
+                if (detectedMediaType === 'image') messageBody.imageUrl = mediaUrl;
+                else if (detectedMediaType === 'video') messageBody.videoUrl = mediaUrl;
+                else if (detectedMediaType === 'audio') messageBody.audioUrl = mediaUrl;
+            }
+
+            const response = await fetch(ENDPOINTS.GROUP_MESSAGES_POST(groupId), {
+                method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
                 },
-                body: formData
+                body: JSON.stringify(messageBody),
             });
 
             if (response.ok) {
-                setMessage("");
+                setMessage('');
                 setAudioBlob(null);
                 setSelectedMedia(null);
                 setMediaPreview(null);
                 setMediaType(null);
                 mutateMessages();
             } else {
-                toast.error("Failed to send message");
+                toast.error('Failed to send message');
             }
         } catch (error) {
-            console.error("Error sending message:", error);
-            toast.error("An error occurred");
+            console.error('Error sending message:', error);
+            toast.error('An error occurred');
         }
     };
 

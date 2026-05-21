@@ -134,18 +134,18 @@ export function Posts({ onDataLoaded }: { onDataLoaded?: () => void }) {
   return (
     <div className="flex justify-center w-full md:px-0 scroll-smooth">
       <div className="w-full max-w-[500px] md:max-w-[600px] lg:max-w-[650px]">
-        <div className="sticky top-[60px] md:top-[80px] z-40 bg-[#FBFDFF]/90 dark:bg-black/90 backdrop-blur-md py-4 px-4 md:px-0 border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+        <div className="top-[60px] md:top-[80px] z-40 bg-[#FBFDFF]/90 dark:bg-black/90 backdrop-blur-md py-2 px-4 md:px-0 border-b border-gray-100 dark:border-gray-800/50 transition-all duration-300">
           <div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-1 w-full justify-start md:justify-center">
             <Badge
               variant={activeTab === "All" ? "default" : "secondary"}
-              className={`rounded-full px-5 py-2 cursor-pointer transition-all duration-300 whitespace-nowrap active:scale-95 ${activeTab === "All" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
+              className={`rounded-full px-5 cursor-pointer transition-all duration-300 whitespace-nowrap active:scale-95 ${activeTab === "All" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
               onClick={() => setActiveTab("All")}
             >
               All
             </Badge>
             <Badge
               variant={activeTab === "Video" ? "default" : "secondary"}
-              className={`rounded-full px-5 py-2 cursor-pointer transition-all duration-300 flex gap-2 items-center whitespace-nowrap active:scale-95 ${activeTab === "Video" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
+              className={`rounded-full px-5 cursor-pointer transition-all duration-300 flex gap-2 items-center whitespace-nowrap active:scale-95 ${activeTab === "Video" ? "shadow-md bg-primary hover:bg-primary/90" : "hover:bg-gray-200 dark:hover:bg-gray-800"}`}
               onClick={() => setActiveTab("Video")}
             >
               <FileVideo2 className="h-4 w-4" />

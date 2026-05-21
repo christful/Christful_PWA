@@ -88,6 +88,7 @@ export const ENDPOINTS = {
 
     // Messaging
     GROUP_MESSAGES: (groupId: string) => `${API_BASE_URL}/groups/${groupId}/messages`,
+    GROUP_MESSAGES_POST: (groupId: string) => `${API_BASE_URL}/api/groups/${groupId}/messages`,
     GROUP_CHATS: `${API_BASE_URL}/group-chats`,
     MESSAGE_DETAIL: (messageId: string) => `${API_BASE_URL}/messages/${messageId}`,
     REACT_MESSAGE: (messageId: string) => `${API_BASE_URL}/messages/${messageId}/react`,

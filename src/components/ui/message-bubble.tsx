@@ -24,7 +24,11 @@ interface MessageBubbleProps {
         senderName: string;
         content: string;
     };
+    isReacted?: string; // emoji or ""
 }
+        isReacted?: string; // emoji or ""
+
+import { CustomAudioPlayer } from "@/components/common/CustomAudioPlayer";
 
 export function MessageBubble({
     content,
@@ -40,8 +44,10 @@ export function MessageBubble({
     role,
     onReply,
     onReact,
-    replyTo
-}: MessageBubbleProps) {
+    replyTo,
+    onMediaClick
+}: MessageBubbleProps & { onMediaClick?: (type: 'image' | 'video' | 'audio', url: string) => void }) {
+        isReacted
     const router = useRouter()
     const [isPlaying, setIsPlaying] = useState(false);
     const [audioProgress, setAudioProgress] = useState(0);
@@ -175,14 +181,21 @@ export function MessageBubble({
                                     : "bg-white text-gray-900 rounded-2xl rounded-bl-none border border-gray-100"
                             )}
                         >
+                            {/* User's reaction emoji (if any) */}
+                            {isReacted && isReacted !== "" && (
+                                <span className="absolute -top-4 right-2 text-xl select-none" title="Your reaction">
+                                    {isReacted}
+                                </span>
+                            )}
                             {/* Image content */}
+
                             {imageUrl && (
                                 <div className="mb-2 rounded-lg overflow-hidden max-w-[250px]">
                                     <img 
                                         src={imageUrl} 
                                         alt="Shared image" 
                                         className="w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
-                                        onClick={() => window.open(imageUrl, '_blank')}
+                                        onClick={() => onMediaClick && onMediaClick('image', imageUrl)}
                                     />
                                 </div>
                             )}
@@ -193,7 +206,8 @@ export function MessageBubble({
                                     <video 
                                         src={videoUrl} 
                                         controls 
-                                        className="w-full h-auto"
+                                        className="w-full h-auto cursor-pointer"
+                                        onClick={() => onMediaClick && onMediaClick('video', videoUrl)}
                                     />
                                 </div>
                             )}
@@ -201,44 +215,12 @@ export function MessageBubble({
                             {/* Audio content */}
                             {audioUrl && (
                                 <div className={cn(
-                                    "mb-2 p-3 rounded-xl max-w-[250px]",
+                                    "mb-2 p-3 rounded-xl max-w-[250px] cursor-pointer",
                                     isMe ? "bg-[#800517]/10" : "bg-gray-50"
-                                )}>
-                                    <audio ref={audioRef} src={audioUrl} className="hidden" />
-                                    <div className="flex items-center gap-3">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className={cn(
-                                                "h-8 w-8 rounded-full",
-                                                isMe 
-                                                    ? "hover:bg-[#800517]/20 text-[#800517]" 
-                                                    : "hover:bg-gray-200 text-gray-700"
-                                            )}
-                                            onClick={toggleAudio}
-                                        >
-                                            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-                                        </Button>
-                                        <div className="flex-1">
-                                            <div className="h-1.5 bg-gray-300 rounded-full overflow-hidden">
-                                                <div 
-                                                    className={cn(
-                                                        "h-full transition-all duration-100",
-                                                        "bg-[#800517]"
-                                                    )}
-                                                    style={{ width: `${audioProgress}%` }}
-                                                />
-                                            </div>
-                                            <div className="flex justify-between mt-1">
-                                                <span className="text-[10px] text-gray-500">
-                                                    {formatTime(currentTime)}
-                                                </span>
-                                                <span className="text-[10px] text-gray-500">
-                                                    {formatTime(audioDuration)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                )}
+                                    onClick={() => onMediaClick && onMediaClick('audio', audioUrl)}
+                                >
+                                    <CustomAudioPlayer audioUrl={audioUrl} />
                                 </div>
                             )}
 

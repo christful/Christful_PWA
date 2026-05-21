@@ -132,7 +132,7 @@ export default function GroupDetailPage() {
   const fetchMessages = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(ENDPOINTS.GROUP_MESSAGES(groupId), {
+      const response = await fetch(`${API_BASE_URL}/groups/${groupId}/messages`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

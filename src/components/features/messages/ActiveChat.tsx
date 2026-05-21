@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { VoiceNotePreview } from "@/components/common/VoiceNotePreview";
 import { MessageBubble } from "@/components/ui/message-bubble";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,17 +12,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
+import { ScriptureSelector } from "./ScriptureSelector";
 
 const EMOJIS = ["🙏", "🙌", "✨", "❤️", "😊", "😂", "🔥", "🤝", "📖", "⛪", "🕊️", "😇", "💡", "💪", "🌈", "🎵", "✍️"];
-
-const BIBLE_VERSES = [
-    { ref: "John 3:16", text: "For God so loved the world, that he gave his only begotten Son..." },
-    { ref: "Psalm 23:1", text: "The LORD is my shepherd; I shall not want." },
-    { ref: "Philippians 4:13", text: "I can do all things through Christ which strengtheneth me." },
-    { ref: "Proverbs 3:5", text: "Trust in the LORD with all thine heart; and lean not unto thine own understanding." },
-    { ref: "Romans 8:28", text: "And we know that all things work together for good to them that love God..." },
-    { ref: "Matthew 11:28", text: "Come unto me, all ye that labour and are heavy laden, and I will give you rest." },
-];
 
 export function ActiveChat({
     selectedChat,
@@ -54,16 +47,18 @@ export function ActiveChat({
     const videoInputRef = useRef<HTMLInputElement>(null);
     const audioInputRef = useRef<HTMLInputElement>(null);
     const captionInputRef = useRef<HTMLInputElement>(null);
+    const [mediaModal, setMediaModal] = useState<{ type: 'image' | 'video' | 'audio'; url: string } | null>(null);
 
     const [modalCaption, setModalCaption] = useState("");
     const [userId, setUserId] = useState<string | null>(null);
+    const [isScriptureSelectorOpen, setIsScriptureSelectorOpen] = useState(false);
+    const [selectedScriptures, setSelectedScriptures] = useState<string>("");
 
     useEffect(() => {
         if (typeof window !== "undefined") {
             setUserId(localStorage.getItem("userId"));
         }
     }, []);
-
     // Auto-focus caption input when modal opens
     useEffect(() => {
         if (selectedMedia && captionInputRef.current) {
@@ -118,6 +113,14 @@ export function ActiveChat({
             onSendMessage(modalCaption, undefined, { file: selectedMedia, type: mediaType });
             clearSelectedMedia();
         }
+    };
+
+    const handleSelectScriptures = (verses: any[]) => {
+        const verseTexts = verses.map((v) => `${v.book} ${v.chapter}:${v.verse}`).join(", ");
+        const fullText = verses.map((v) => `📖 ${v.book} ${v.chapter}:${v.verse}\n"${v.text}"`).join("\n\n");
+        
+        setMessage((prev: string) => (prev ? `${prev}\n\n${fullText}` : fullText));
+        setIsScriptureSelectorOpen(false);
     };
 
     return (
@@ -192,7 +195,8 @@ export function ActiveChat({
                                     imageUrl={msg.imageUrl}
                                     videoUrl={msg.videoUrl}
                                     status={msg.status}
-                                />
+                                     isReacted={msg.isReacted}
+                                 />
                             ))
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 h-full">
@@ -205,6 +209,18 @@ export function ActiveChat({
                                 <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
                                 <span className="text-xs font-bold text-red-600">Recording... {formatDuration(recordingDuration)}</span>
                             </div>
+                        )}
+
+                        {/* Voice note preview after recording */}
+                        {audioBlob && !isRecording && (
+                            <VoiceNotePreview
+                                audioBlob={audioBlob}
+                                onSend={() => {
+                                    onSendMessage("", audioBlob);
+                                    setAudioBlob(null);
+                                }}
+                                onCancel={() => setAudioBlob(null)}
+                            />
                         )}
                     </div>
 
@@ -255,22 +271,17 @@ export function ActiveChat({
                                             </Button>
                                         </div>
                                         <div className="space-y-3 pt-2 border-t">
-                                            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                                                <Book size={18} className="text-[#800517]" />
-                                                Share Scripture
-                                            </h3>
-                                            <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1">
-                                                {BIBLE_VERSES.map((v: any, i: number) => (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => onSendScripture(v)}
-                                                        className="text-left p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group"
-                                                    >
-                                                        <p className="text-[10px] font-bold text-[#800517] mb-0.5">{v.ref}</p>
-                                                        <p className="text-[10px] text-slate-600 line-clamp-1">{v.text}</p>
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <Button
+                                                onClick={() => {
+                                                    setIsScriptureModalOpen(false);
+                                                    setIsScriptureSelectorOpen(true);
+                                                }}
+                                                variant="ghost"
+                                                className="w-full justify-start font-bold text-slate-900 hover:bg-slate-50"
+                                            >
+                                                <Book size={18} className="text-[#800517] mr-2" />
+                                                Get Translations & Bookmarks
+                                            </Button>
                                         </div>
                                     </div>
                                 </PopoverContent>
@@ -310,9 +321,6 @@ export function ActiveChat({
                                     <div className="flex gap-1">
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-200 rounded-full" onClick={() => { toggleRecording(); setAudioBlob(null); }}>
                                             <Trash2 size={16} />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-200 rounded-full" onClick={toggleRecording}>
-                                            <Send size={16} />
                                         </Button>
                                     </div>
                                 </div>
@@ -395,6 +403,12 @@ export function ActiveChat({
             )}
 
             {/* Audio files don't need a full-screen preview; we keep the existing toast */}
+
+            <ScriptureSelector
+                isOpen={isScriptureSelectorOpen}
+                onClose={() => setIsScriptureSelectorOpen(false)}
+                onSelectVerses={handleSelectScriptures}
+            />
         </div>
     );
 }
