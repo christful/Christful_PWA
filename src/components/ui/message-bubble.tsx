@@ -183,7 +183,11 @@ export function MessageBubble({
                         >
                             {/* User's reaction emoji (if any) */}
                             {isReacted && isReacted !== "" && (
-                                <span className="absolute -top-4 right-2 text-xl select-none" title="Your reaction">
+                                <span
+                                    className="absolute -top-4 right-4 z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 border-white bg-white shadow-lg text-xl select-none font-bold"
+                                    title="Your reaction"
+                                    style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
+                                >
                                     {isReacted}
                                 </span>
                             )}
