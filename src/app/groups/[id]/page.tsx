@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ENDPOINTS } from "@/lib/api-config";
+import { API_BASE_URL, ENDPOINTS } from "@/lib/api-config";
 import { toast } from "sonner";
 import { ChevronLeft, Send, MoreHorizontal } from "lucide-react";
 import { MessageBubble } from "@/components/ui/message-bubble";
