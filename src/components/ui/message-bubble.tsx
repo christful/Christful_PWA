@@ -44,9 +44,10 @@ export function MessageBubble({
     onReply,
     onReact,
     replyTo,
+    isReacted,
     onMediaClick
 }: MessageBubbleProps & { onMediaClick?: (type: 'image' | 'video' | 'audio', url: string) => void }) {
-        isReacted
+
     const router = useRouter()
     const [isPlaying, setIsPlaying] = useState(false);
     const [audioProgress, setAudioProgress] = useState(0);
