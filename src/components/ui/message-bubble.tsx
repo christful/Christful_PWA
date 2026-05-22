@@ -26,7 +26,6 @@ interface MessageBubbleProps {
     };
     isReacted?: string; // emoji or ""
 }
-        isReacted?: string; // emoji or ""
 
 import { CustomAudioPlayer } from "@/components/common/CustomAudioPlayer";
 
